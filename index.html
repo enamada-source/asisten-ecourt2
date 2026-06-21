@@ -23,7 +23,10 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 transition-colors duration-200 dark:bg-gray-900 dark:text-gray-100">
-
+<button onclick="testFirebase()"
+style="position:fixed;top:10px;right:10px;z-index:9999;background:red;color:white;padding:10px;">
+Tes Firebase
+</button>
     <!-- AREA ALARM / PENGINGAT OTOMATIS (DIPICU OLEH TANGGAL & WAKTU) -->
     <div id="containerAlarmOtomatis" class="no-print w-full hidden">
         <div class="bg-amber-500 text-white px-6 py-3 flex justify-between items-center shadow-md border-b border-amber-600 animate-pulse">
@@ -589,30 +592,7 @@
     <div id="printArea" class="hidden bg-white text-black"></div>
 
     <script>
-        async function loadData() {
-
-    const snapshot = await get(
-      ref(database, 'pihak')
-    );
-
-    if(snapshot.exists()) {
-
-        dbPihak = [];
-
-        snapshot.forEach(child => {
-
-            dbPihak.push({
-                id: child.key,
-                ...child.val()
-            });
-
-        });
-
-    }
-
-    renderArsipTable();
-    updateDashboardStats();
-}
+        let dbPihak = JSON.parse(localStorage.getItem('db_ecourt_ptsp')) || [];
         let dbReminders = JSON.parse(localStorage.getItem('db_ecourt_reminders')) || [];
         let currentMenu = 'dashboard';
         let sortField = 'tglInput';
@@ -1017,11 +997,7 @@
                 showToast('Data pihak berhasil disimpan!');
             }
 
-            const dataRef = push(
-  ref(database, 'pihak')
-);
-
-set(dataRef, pihakData);
+            localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
             document.getElementById('form-id').value = pihakData.id;
             document.getElementById('btn-cetak-akun-form').classList.remove('hidden');
             updateDashboardStats();
@@ -1080,14 +1056,8 @@ set(dataRef, pihakData);
 
         function deletePihak(id) {
             if (confirm('Hapus berkas ini dari arsip lokal?')) {
-                remove(
-  ref(database, 'pihak/' + id)
-);
-                const dataRef = push(
-  ref(database, 'pihak')
-);
-
-set(dataRef, pihakData);
+                dbPihak = dbPihak.filter(p => p.id !== id);
+                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
                 showToast('Arsip dihapus!');
                 renderArsipTable();
                 updateDashboardStats();
@@ -1098,11 +1068,7 @@ set(dataRef, pihakData);
             const index = dbPihak.findIndex(p => p.id === id);
             if (index !== -1) {
                 dbPihak[index].isLunasSKUM = !dbPihak[index].isLunasSKUM;
-                const dataRef = push(
-  ref(database, 'pihak')
-);
-
-set(dataRef, pihakData);
+                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
                 const statusMsg = dbPihak[index].isLunasSKUM ? "SKUM Terkonfirmasi Lunas!" : "SKUM Diubah Ke Belum Bayar";
                 showToast(statusMsg);
                 renderArsipTable();
@@ -1636,11 +1602,7 @@ set(dataRef, pihakData);
             const reader = new FileReader();
             reader.onload = function() {
                 dbPihak = JSON.parse(reader.result);
-                const dataRef = push(
-  ref(database, 'pihak')
-);
-
-set(dataRef, pihakData);
+                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
                 showToast('Database dipulihkan!');
                 switchMenu('dashboard');
             };
@@ -1816,16 +1778,55 @@ import { initializeApp }
 from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 
 import {
-  getDatabase,
-  ref,
-  set,
-  push,
-  get,
-  remove
+ getDatabase,
+ ref,
+ set,
+ get
 }
 from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
 const firebaseConfig = {
+  apiKey: "AIzaSyBZRYNCgwRH2l3NLVn7OsH_CLY39IauVMs",
+  authDomain: "asisten-ecourt.firebaseapp.com",
+  databaseURL: "https://asisten-ecourt-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "asisten-ecourt",
+  storageBucket: "asisten-ecourt.firebasestorage.app",
+  messagingSenderId: "892696129045",
+  appId: "1:892696129045:web:855334162f6a97cb8f281c"
+};
+
+const app = initializeApp(firebaseConfig);
+
+const database = getDatabase(app);
+
+window.database = database;
+window.ref = ref;
+window.set = set;
+window.get = get;
+
+console.log("Firebase Connected");
+
+</script>
+...
+</script>
+
+
+<!-- FIREBASE -->
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+import {
+ getDatabase,
+ ref,
+ set,
+ get
+}
+from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+
+const firebaseConfig = {
+
   apiKey: "ISI_DARI_FIREBASE",
   authDomain: "ISI_DARI_FIREBASE",
   databaseURL: "ISI_DARI_FIREBASE",
@@ -1833,17 +1834,77 @@ const firebaseConfig = {
   storageBucket: "ISI_DARI_FIREBASE",
   messagingSenderId: "ISI_DARI_FIREBASE",
   appId: "ISI_DARI_FIREBASE"
+
 };
 
 const app = initializeApp(firebaseConfig);
+
 const database = getDatabase(app);
 
 window.database = database;
 window.ref = ref;
 window.set = set;
-window.push = push;
 window.get = get;
-window.remove = remove;
+
+console.log("Firebase Connected");
+
+
+window.testFirebase = async function(){
+
+    await set(
+        ref(database,"test"),
+        {
+            aplikasi:"Asisten eCourt",
+            tanggal:new Date().toISOString()
+        }
+    );
+
+    alert("Data berhasil dikirim");
+
+}
+
+</script>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  set,
+  get
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBZRYNCgwRH2l3NLVn7OsH_CLY39IauVMs",
+  authDomain: "asisten-ecourt.firebaseapp.com",
+  databaseURL: "https://asisten-ecourt-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "asisten-ecourt",
+  storageBucket: "asisten-ecourt.firebasestorage.app",
+  messagingSenderId: "892696129045",
+  appId: "1:892696129045:web:855334162f6a97cb8f281c"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+console.log("Firebase Connected");
+
+// Supaya bisa dipanggil dari tombol HTML
+window.testFirebase = async function() {
+
+    await set(
+        ref(database, "test"),
+        {
+            aplikasi: "Asisten eCourt",
+            waktu: new Date().toISOString()
+        }
+    );
+
+    alert("Data berhasil dikirim ke Firebase");
+};
+
 </script>
 </body>
 </html>
