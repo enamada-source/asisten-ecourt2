@@ -589,7 +589,7 @@
     <div id="printArea" class="hidden bg-white text-black"></div>
 
     <script>
-        let async function loadData() {
+        async function loadData() {
 
     const snapshot = await get(
       ref(database, 'pihak')
@@ -742,11 +742,11 @@
                 showToast('Pengingat baru disimpan!');
             }
 
-            const dataRef = push(
-  ref(database, 'pihak')
-);
-
-set(dataRef, pihakData);
+            localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
+            clearFormReminder();
+            renderReminderTable();
+            alarmDismissed = false; 
+            checkReminderTrigger();
         }
 
         function editReminder(id) {
@@ -1017,7 +1017,11 @@ set(dataRef, pihakData);
                 showToast('Data pihak berhasil disimpan!');
             }
 
-            localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
+            const dataRef = push(
+  ref(database, 'pihak')
+);
+
+set(dataRef, pihakData);
             document.getElementById('form-id').value = pihakData.id;
             document.getElementById('btn-cetak-akun-form').classList.remove('hidden');
             updateDashboardStats();
@@ -1079,7 +1083,11 @@ set(dataRef, pihakData);
                 remove(
   ref(database, 'pihak/' + id)
 );
-                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
+                const dataRef = push(
+  ref(database, 'pihak')
+);
+
+set(dataRef, pihakData);
                 showToast('Arsip dihapus!');
                 renderArsipTable();
                 updateDashboardStats();
@@ -1090,7 +1098,11 @@ set(dataRef, pihakData);
             const index = dbPihak.findIndex(p => p.id === id);
             if (index !== -1) {
                 dbPihak[index].isLunasSKUM = !dbPihak[index].isLunasSKUM;
-                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
+                const dataRef = push(
+  ref(database, 'pihak')
+);
+
+set(dataRef, pihakData);
                 const statusMsg = dbPihak[index].isLunasSKUM ? "SKUM Terkonfirmasi Lunas!" : "SKUM Diubah Ke Belum Bayar";
                 showToast(statusMsg);
                 renderArsipTable();
@@ -1624,7 +1636,11 @@ set(dataRef, pihakData);
             const reader = new FileReader();
             reader.onload = function() {
                 dbPihak = JSON.parse(reader.result);
-                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
+                const dataRef = push(
+  ref(database, 'pihak')
+);
+
+set(dataRef, pihakData);
                 showToast('Database dipulihkan!');
                 switchMenu('dashboard');
             };
@@ -1794,14 +1810,40 @@ set(dataRef, pihakData);
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
     </script>
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  set,
+  push,
+  get,
+  remove
+}
+from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBZRYNCgwRH2l3NLVn7OsH_CLY39IauVMs",
-  authDomain: "asisten-ecourt.firebaseapp.com",
-  databaseURL: "https://asisten-ecourt-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "asisten-ecourt",
-  storageBucket: "asisten-ecourt.firebasestorage.app",
-  messagingSenderId: "892696129045",
-  appId: "1:892696129045:web:855334162f6a97cb8f281c"
+  apiKey: "ISI_DARI_FIREBASE",
+  authDomain: "ISI_DARI_FIREBASE",
+  databaseURL: "ISI_DARI_FIREBASE",
+  projectId: "ISI_DARI_FIREBASE",
+  storageBucket: "ISI_DARI_FIREBASE",
+  messagingSenderId: "ISI_DARI_FIREBASE",
+  appId: "ISI_DARI_FIREBASE"
 };
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+window.database = database;
+window.ref = ref;
+window.set = set;
+window.push = push;
+window.get = get;
+window.remove = remove;
+</script>
 </body>
 </html>
