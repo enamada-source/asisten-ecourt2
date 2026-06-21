@@ -23,10 +23,10 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 transition-colors duration-200 dark:bg-gray-900 dark:text-gray-100">
-<button onclick="testFirebase()"
-style="position:fixed;top:10px;right:10px;z-index:9999;background:red;color:white;padding:10px;">
-Tes Firebase
-</button>
+    <button onclick="testFirebase()" style="position:fixed;top:10px;right:10px;z-index:9999;background:red;color:white;padding:10px; border-radius: 5px; font-weight: bold; cursor: pointer;">
+        Tes Firebase
+    </button>
+
     <!-- AREA ALARM / PENGINGAT OTOMATIS (DIPICU OLEH TANGGAL & WAKTU) -->
     <div id="containerAlarmOtomatis" class="no-print w-full hidden">
         <div class="bg-amber-500 text-white px-6 py-3 flex justify-between items-center shadow-md border-b border-amber-600 animate-pulse">
@@ -168,7 +168,6 @@ Tes Firebase
                         <input type="hidden" id="form-id">
                         <input type="hidden" id="form-type">
                         
-                        <!-- Variabel Tersembunyi untuk Data Berkas File -->
                         <input type="hidden" id="p-file-pdf-data">
                         <input type="hidden" id="p-file-pdf-name">
                         <input type="hidden" id="p-file-word-data">
@@ -188,7 +187,6 @@ Tes Firebase
                                     </div>
                                 </div>
 
-                                <!-- FITUR UPLOAD BERKAS FILE DENGAN LIMIT PDF YANG LEBIH BESAR -->
                                 <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                                     <h3 class="text-md font-bold text-amber-600 dark:text-amber-400 border-b pb-2"><i class="fa-solid fa-cloud-arrow-up mr-2"></i>Upload Lampiran (Opsional)</h3>
                                     <div>
@@ -298,7 +296,6 @@ Tes Firebase
                                     <textarea id="p-alamat" rows="2" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Contoh: Silam Tengah, RT 001 RW 002..."></textarea>
                                 </div>
 
-                                <!-- KOLOM TAMBAHAN: CATATAN / NOTE KASUS UNTUK PIHAK BERPERKARA -->
                                 <div>
                                     <label class="block text-xs font-semibold uppercase text-amber-600 dark:text-amber-400 mb-1"><i class="fa-solid fa-note-sticky mr-1"></i> Catatan Khusus / Note Perkara (Penting)</label>
                                     <textarea id="p-catatan" rows="2" class="w-full border border-amber-500/40 rounded p-2 text-sm bg-amber-50/20 dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400" placeholder="Contoh: Akte kelahiran anak belum dilampirkan, KTP suami buram, dll."></textarea>
@@ -519,7 +516,6 @@ Tes Firebase
                                         <th class="p-4">Identitas (NIK/HP)</th>
                                         <th class="p-4">e-Court & SKUM</th>
                                         <th class="p-4">Lampiran Berkas</th>
-                                        <!-- KOLOM BARU DI TABEL ARSIP UNTUK MENAMPILKAN CATATAN / NOTE KASUS -->
                                         <th class="p-4 w-48">Catatan/Note Khusus</th>
                                         <th class="p-4 text-center">Aksi</th>
                                     </tr>
@@ -567,7 +563,7 @@ Tes Firebase
                         </div>
 
                         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2 space-y-4">
-                            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider"><i class="fa-solid fa-list mr-2"></i>Daftar Pengingat Akhip Bulan</h4>
+                            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider"><i class="fa-solid fa-list mr-2"></i>Daftar Pengingat Akhir Bulan</h4>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-xs border-collapse">
                                     <thead class="bg-gray-50 dark:bg-gray-700 text-gray-500 font-bold uppercase border-b border-gray-100 dark:divide-gray-600">
@@ -592,8 +588,8 @@ Tes Firebase
     <div id="printArea" class="hidden bg-white text-black"></div>
 
     <script>
-        let dbPihak = JSON.parse(localStorage.getItem('db_ecourt_ptsp')) || [];
-        let dbReminders = JSON.parse(localStorage.getItem('db_ecourt_reminders')) || [];
+        let dbPihak = [];
+        let dbReminders = [];
         let currentMenu = 'dashboard';
         let sortField = 'tglInput';
         let sortAsc = false;
@@ -606,11 +602,8 @@ Tes Firebase
             switchMenu('dashboard');
             autoSetTanggalInput();
             initCharts();
-            updateDashboardStats();
             autoSetTanggalSurat();
-            checkReminderTrigger(); 
             
-            // Event listener global untuk menutup dropdown menu saat klik di luar area
             document.addEventListener('click', function(e) {
                 if (!e.target.closest('.wa-dropdown-container')) {
                     document.querySelectorAll('.wa-dropdown-menu').forEach(menu => menu.classList.add('hidden'));
@@ -713,20 +706,15 @@ Tes Firebase
                 status: status
             };
 
-            if (id) {
-                const idx = dbReminders.findIndex(r => r.id === id);
-                if (idx !== -1) dbReminders[idx] = reminderData;
-                showToast('Pengingat diperbarui!');
-            } else {
-                dbReminders.push(reminderData);
-                showToast('Pengingat baru disimpan!');
+            if (window.fbDatabase && window.fbSet && window.fbRef) {
+                window.fbSet(window.fbRef(window.fbDatabase, 'reminders/' + reminderData.id), reminderData)
+                .then(() => {
+                    showToast(id ? 'Pengingat diperbarui!' : 'Pengingat baru disimpan!');
+                    clearFormReminder();
+                    alarmDismissed = false; 
+                })
+                .catch(err => alert("Gagal menyimpan pengingat ke Firebase: " + err.message));
             }
-
-            localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
-            clearFormReminder();
-            renderReminderTable();
-            alarmDismissed = false; 
-            checkReminderTrigger();
         }
 
         function editReminder(id) {
@@ -741,24 +729,25 @@ Tes Firebase
         }
 
         function toggleStatusReminder(id) {
-            const idx = dbReminders.findIndex(item => item.id === id);
-            if (idx !== -1) {
-                dbReminders[idx].status = dbReminders[idx].status === 'aktif' ? 'nonaktif' : 'aktif';
-                localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
-                showToast('Status kemunculan peringatan diubah!');
-                renderReminderTable();
-                alarmDismissed = false;
-                checkReminderTrigger();
+            const r = dbReminders.find(item => item.id === id);
+            if (r) {
+                const newStatus = r.status === 'aktif' ? 'nonaktif' : 'aktif';
+                if (window.fbDatabase && window.fbSet && window.fbRef) {
+                    window.fbSet(window.fbRef(window.fbDatabase, `reminders/${id}/status`), newStatus)
+                    .then(() => {
+                        showToast('Status pengingat berhasil diubah!');
+                        alarmDismissed = false;
+                    });
+                }
             }
         }
 
         function deleteReminder(id) {
-            if (confirm('Hapus pengaturan pengingat ini dari sistem?')) {
-                dbReminders = dbReminders.filter(item => item.id !== id);
-                localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
-                showToast('Pengingat berhasil dihapus!');
-                renderReminderTable();
-                checkReminderTrigger();
+            if (confirm('Hapus pengaturan pengingat ini dari sistem cloud?')) {
+                if (window.fbDatabase && window.fbRemove && window.fbRef) {
+                    window.fbRemove(window.fbRef(window.fbDatabase, 'reminders/' + id))
+                    .then(() => showToast('Pengingat berhasil dihapus!'));
+                }
             }
         }
 
@@ -957,9 +946,10 @@ Tes Firebase
             const id = document.getElementById('form-id').value;
             const type = document.getElementById('form-type').value;
             const fallbackNama = document.getElementById('p-nama').value || 'Tanpa Nama KTP';
+            const generatedId = id ? id : 'ID-' + Date.now();
 
             const pihakData = {
-                id: id ? id : 'ID-' + Date.now(),
+                id: generatedId,
                 type: type,
                 noPerkara: document.getElementById('p-no-perkara').value,
                 tglInput: document.getElementById('p-tgl-input').value,
@@ -988,19 +978,15 @@ Tes Firebase
                 fileDataWord: document.getElementById('p-file-word-data').value || ''
             };
 
-            if (id) {
-                const index = dbPihak.findIndex(p => p.id === id);
-                if(index !== -1) dbPihak[index] = pihakData;
-                showToast('Arsip data diperbarui!');
-            } else {
-                dbPihak.push(pihakData);
-                showToast('Data pihak berhasil disimpan!');
+            if (window.fbDatabase && window.fbSet && window.fbRef) {
+                window.fbSet(window.fbRef(window.fbDatabase, 'pihak/' + generatedId), pihakData)
+                .then(() => {
+                    showToast(id ? 'Arsip data cloud diperbarui!' : 'Data pihak berhasil disinkronkan ke Cloud!');
+                    document.getElementById('form-id').value = generatedId;
+                    document.getElementById('btn-cetak-akun-form').classList.remove('hidden');
+                })
+                .catch(err => alert("Gagal menyinkronkan data ke Firebase: " + err.message));
             }
-
-            localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
-            document.getElementById('form-id').value = pihakData.id;
-            document.getElementById('btn-cetak-akun-form').classList.remove('hidden');
-            updateDashboardStats();
         }
 
         function editPihak(id) {
@@ -1055,32 +1041,30 @@ Tes Firebase
         }
 
         function deletePihak(id) {
-            if (confirm('Hapus berkas ini dari arsip lokal?')) {
-                dbPihak = dbPihak.filter(p => p.id !== id);
-                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
-                showToast('Arsip dihapus!');
-                renderArsipTable();
-                updateDashboardStats();
+            if (confirm('Hapus berkas ini dari server cloud secara permanen?')) {
+                if (window.fbDatabase && window.fbRemove && window.fbRef) {
+                    window.fbRemove(window.fbRef(window.fbDatabase, 'pihak/' + id))
+                    .then(() => showToast('Arsip cloud terhapus!'))
+                    .catch(err => alert("Gagal menghapus dari cloud: " + err.message));
+                }
             }
         }
 
         function toggleSkumStatusDirectly(id) {
-            const index = dbPihak.findIndex(p => p.id === id);
-            if (index !== -1) {
-                dbPihak[index].isLunasSKUM = !dbPihak[index].isLunasSKUM;
-                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
-                const statusMsg = dbPihak[index].isLunasSKUM ? "SKUM Terkonfirmasi Lunas!" : "SKUM Diubah Ke Belum Bayar";
-                showToast(statusMsg);
-                renderArsipTable();
-                updateDashboardStats();
+            const pihak = dbPihak.find(p => p.id === id);
+            if (pihak) {
+                const currentStatus = pihak.isLunasSKUM || false;
+                if (window.fbDatabase && window.fbSet && window.fbRef) {
+                    window.fbSet(window.fbRef(window.fbDatabase, `pihak/${id}/isLunasSKUM`), !currentStatus)
+                    .then(() => {
+                        showToast(!currentStatus ? "SKUM Terkonfirmasi Lunas!" : "SKUM Diubah Ke Belum Bayar");
+                    });
+                }
             }
         }
 
-        // FITUR UTAMA: ENGINE PENGIRIMAN CHAT OTOMATIS KE WHATSAPP PIHAK (Gbr 1, Gbr 2, Gbr 3)
         function openWADropdown(id) {
-            // Sembunyikan semua dropdown menu yang sedang terbuka
             document.querySelectorAll('.wa-dropdown-menu').forEach(menu => menu.classList.add('hidden'));
-            // Tampilkan dropdown spesifik baris data terpilih
             const targetMenu = document.getElementById('wa-menu-' + id);
             if(targetMenu) targetMenu.classList.remove('hidden');
         }
@@ -1092,7 +1076,6 @@ Tes Firebase
                 return;
             }
 
-            // Normalisasi nomor telepon ke format internasional standar (62)
             let phoneNo = pihak.hp.replace(/[^0-9]/g, '');
             if(phoneNo.startsWith('0')) {
                 phoneNo = '62' + phoneNo.slice(1);
@@ -1101,7 +1084,6 @@ Tes Firebase
             let message = "";
 
             if (templateType === 1) {
-                // Sesuai contoh teks di Gambar 1 (image_f2341e.png)
                 message = "Assalamu'alaikum warahmatullahi wabarakatuh.\n" +
                           "Yth. Bapak/Ibu,\n\n" +
                           "Kami dari *Pengadilan Agama Bangkinang* mengonfirmasi bahwa perkara yang Bapak/Ibu daftarkan *telah dapat dilakukan pembayaran panjar biaya perkara* melalui *BRILink maupun transfer bank*\n\n" +
@@ -1115,28 +1097,25 @@ Tes Firebase
                           "• Pembayaran dapat dilakukan melalui *BRILink* atau *transfer antar bank yang mendukung.*";
             } 
             else if (templateType === 2) {
-                // Sesuai contoh teks di Gambar 2 (image_f230fe.png)
                 message = "Assalamu'alaikum warahmatullahi wabarakatuh.\n" +
                           "Yth. Bapak/Ibu,\n\n" +
                           "Berikut kami lampirkan *akun e-Court* milik Bapak/Ibu.\n\n" +
                           "Akun *e-Court* digunakan untuk memudahkan layanan perkara secara elektronik di Pengadilan Agama, antara lain:\n" +
                           "• Penerima *panggilan dan pemberitahuan sidang* secara elektronik\n" +
                           "• Akses *informasi tahapan dan status perkara* secara real time\n\n" +
-                          "Dengan akun e-Court ini, Bapak/Ibu dapat mengakses layanan pengadilan dengan lebih *mudah, cepat, dan transparan* tanpa harus selalu datang ke pengadilan.\n\n" +
+                          "With akun e-Court ini, Bapak/Ibu dapat mengakses layanan pengadilan dengan lebih *mudah, cepat, dan transparan* tanpa harus selalu datang ke pengadilan.\n\n" +
                           "Detail Akun Anda:\n" +
                           "Username: *" + pihak.usernameEcourt + "*\n" +
                           "Password: *" + pihak.passEcourt + "*\n\n" +
                           "Demikian kami sampaikan. Atas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.";
             } 
             else if (templateType === 3) {
-                // Sesuai contoh teks di Gambar 3 (image_f230e1.png)
                 message = "*Penting untuk diketahui:*\n" +
                           "Setelah Bapak/Ibu melakukan *pembayaran*, dalam waktu kurang lebih *7 x 24 jam (± 1 minggu)* Bapak/Ibu akan menerima *notifikasi pemberitahuan jadwal sidang melalui WhatsApp dan/atau e-mail* yang telah didaftarkan pada saat pendaftaran perkara.\n\n" +
                           "Mohon memastikan nomor WhatsApp dan alamat e-mail aktif agar pemberitahuan dapat diterima dengan baik.\n\n" +
                           "Terima kasih atas perhatian Bapak/Ibu.";
             }
 
-            // Encode pesan teks ke URI Format & eksekusi pengiriman via WA API web/apps
             const waUrl = "https://wa.me/" + phoneNo + "?text=" + encodeURIComponent(message);
             window.open(waUrl, '_blank');
         }
@@ -1223,7 +1202,6 @@ Tes Firebase
                         <td class="p-4">${catatanTampil}</td>
                         <td class="p-4 text-center">
                             <div class="flex items-center justify-center gap-1">
-                                <!-- DROPDOWN BUTTON UNTUK CHAT OTOMATIS WHATSAPP (A, B, C) -->
                                 <div class="relative wa-dropdown-container">
                                     <button onclick="event.stopPropagation(); openWADropdown('${p.id}')" class="p-1 text-emerald-600 hover:bg-emerald-100 rounded cursor-pointer" title="Kirim Pesan WhatsApp Otomatis">
                                         <i class="fa-brands fa-whatsapp text-lg font-bold"></i>
@@ -1601,10 +1579,15 @@ Tes Firebase
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = function() {
-                dbPihak = JSON.parse(reader.result);
-                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
-                showToast('Database dipulihkan!');
-                switchMenu('dashboard');
+                const importedData = JSON.parse(reader.result);
+                if (Array.isArray(importedData)) {
+                    importedData.forEach(item => {
+                        if(item.id && window.fbDatabase && window.fbSet && window.fbRef) {
+                            window.fbSet(window.fbRef(window.fbDatabase, 'pihak/' + item.id), item);
+                        }
+                    });
+                    showToast('Database cloud dipulihkan!');
+                }
             };
             reader.readAsText(file);
         }
@@ -1772,147 +1755,69 @@ Tes Firebase
             setTimeout(() => toast.classList.add('hidden'), 3000);
         }
     </script>
-<script type="module">
 
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    <!-- CORE MODULE INTEGRASI CLOUD DATABASE FIREBASE REALTIME -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
-import {
- getDatabase,
- ref,
- set,
- get
-}
-from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+        const firebaseConfig = {
+            apiKey: "AIzaSyBZRYNCgwRH2l3NLVn7OsH_CLY39IauVMs",
+            authDomain: "asisten-ecourt.firebaseapp.com",
+            databaseURL: "https://asisten-ecourt-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "asisten-ecourt",
+            storageBucket: "asisten-ecourt.firebasestorage.app",
+            messagingSenderId: "892696129045",
+            appId: "1:892696129045:web:855334162f6a97cb8f281c"
+        };
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBZRYNCgwRH2l3NLVn7OsH_CLY39IauVMs",
-  authDomain: "asisten-ecourt.firebaseapp.com",
-  databaseURL: "https://asisten-ecourt-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "asisten-ecourt",
-  storageBucket: "asisten-ecourt.firebasestorage.app",
-  messagingSenderId: "892696129045",
-  appId: "1:892696129045:web:855334162f6a97cb8f281c"
-};
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
 
-const app = initializeApp(firebaseConfig);
+        // Ekspor ke Global Scope agar dibaca script prosedural HTML
+        window.fbDatabase = database;
+        window.fbSet = set;
+        window.fbRef = ref;
+        window.fbRemove = remove;
 
-const database = getDatabase(app);
+        console.log("Firebase Engine Realtime Terkoneksi!");
 
-window.database = database;
-window.ref = ref;
-window.set = set;
-window.get = get;
+        // 1. Realtime Sync Node Pihak Berperkara
+        onValue(ref(database, 'pihak'), (snapshot) => {
+            const data = snapshot.val();
+            dbPihak = data ? Object.values(data) : [];
+            
+            // Re-render UI otomatis jika data berubah di cloud database
+            if (currentMenu === 'dashboard') {
+                updateDashboardStats();
+            } else if (currentMenu === 'arsip') {
+                renderArsipTable();
+            } else if (currentMenu === 'persetujuan') {
+                populatePihakDropdown();
+            }
+        });
 
-console.log("Firebase Connected");
+        // 2. Realtime Sync Node Reminders
+        onValue(ref(database, 'reminders'), (snapshot) => {
+            const data = snapshot.val();
+            dbReminders = data ? Object.values(data) : [];
+            if (currentMenu === 'pengingat') {
+                renderReminderTable();
+            }
+            checkReminderTrigger();
+        });
 
-</script>
-...
-</script>
-
-
-<!-- FIREBASE -->
-<script type="module">
-
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-
-import {
- getDatabase,
- ref,
- set,
- get
-}
-from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
-
-const firebaseConfig = {
-
-   apiKey: "AIzaSyBZRYNCgwRH2l3NLVn7OsH_CLY39IauVMs",
-  authDomain: "asisten-ecourt.firebaseapp.com",
-  databaseURL: "https://asisten-ecourt-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "asisten-ecourt",
-  storageBucket: "asisten-ecourt.firebasestorage.app",
-  messagingSenderId: "892696129045",
-  appId: "1:892696129045:web:855334162f6a97cb8f281c"
-};
-
-const app = initializeApp(firebaseConfig);
-
-const database = getDatabase(app);
-
-window.database = database;
-window.ref = ref;
-window.set = set;
-window.get = get;
-
-console.log("Firebase Connected");
-
-
-window.testFirebase = async function(){
-
-    await set(
-        ref(database,"test"),
-        {
-            aplikasi:"Asisten eCourt",
-            tanggal:new Date().toISOString()
-        }
-    );
-
-    alert("Data berhasil dikirim");
-
-}
-
-</script>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-
-import {
-  getDatabase,
-  ref,
-  set,
-  get
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBZRYNCgwRH2l3NLVn7OsH_CLY39IauVMs",
-  authDomain: "asisten-ecourt.firebaseapp.com",
-  databaseURL: "https://asisten-ecourt-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "asisten-ecourt",
-  storageBucket: "asisten-ecourt.firebasestorage.app",
-  messagingSenderId: "892696129045",
-  appId: "1:892696129045:web:855334162f6a97cb8f281c"
-};
-
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-
-console.log("Firebase Connected");
-
-// Supaya bisa dipanggil dari tombol HTML
-window.testFirebase = async function() {
-
-    await set(
-        ref(database, "test"),
-        {
-            aplikasi: "Asisten eCourt",
-            waktu: new Date().toISOString()
-        }
-    );
-
-    alert("Data berhasil dikirim ke Firebase");
-};
-
-</script>
-</body>
-<button onclick="testFirebase()"
-style="position:fixed;top:10px;right:10px;z-index:9999;padding:10px;">
-Tes Firebase
-</button>
-<script type="module">
-...
-</script>
-
+        window.testFirebase = async function() {
+            try {
+                await set(ref(database, "test"), {
+                    aplikasi: "Asisten eCourt PTSP PA Bangkinang",
+                    waktu: new Date().toISOString()
+                });
+                alert("Koneksi Bagus! Data pengetesan berhasil terkirim ke Firebase.");
+            } catch(e) {
+                alert("Error Koneksi: " + e.message);
+            }
+        };
+    </script>
 </body>
 </html>
