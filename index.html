@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Asisten e-Court & Arsip PTSP PA Bangkinang</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .bg-ma-green { background-color: #0A5C36; }
+        .text-ma-green { color: #0A5C36; }
+        .border-ma-green { border-color: #0A5C36; }
+        .hover-ma-green:hover { background-color: #08472A; }
+        
+        @media print {
+            body { background: #fff; color: #000; }
+            .no-print { display: none !important; }
+            #printArea { display: block !important; width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 transition-colors duration-200 dark:bg-gray-900 dark:text-gray-100">
+
+    <!-- AREA ALARM / PENGINGAT OTOMATIS (DIPICU OLEH TANGGAL & WAKTU) -->
+    <div id="containerAlarmOtomatis" class="no-print w-full hidden">
+        <div class="bg-amber-500 text-white px-6 py-3 flex justify-between items-center shadow-md border-b border-amber-600 animate-pulse">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                <div>
+                    <span class="font-bold uppercase tracking-wide text-sm">[PENGINGAT SISTEM] :</span>
+                    <span id="txtAlarmOtomatis" class="text-sm font-medium ml-1">Pendaftaran perkara akhir bulan akan segera ditutup!</span>
+                </div>
+            </div>
+            <button onclick="tutupSementaraAlarm()" class="text-white hover:text-gray-200 p-1 cursor-pointer" title="Sembunyikan Sementara">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="mainAppWrapper" class="flex h-screen overflow-hidden">
+        
+        <aside class="w-64 bg-ma-green text-white flex flex-col justify-between no-print shadow-xl flex-shrink-0">
+            <div>
+                <div class="p-5 flex items-center gap-3 border-b border-emerald-800">
+                    <i class="fa-solid fa-scale-balanced text-2xl text-amber-400"></i>
+                    <div>
+                        <h1 class="font-bold text-sm tracking-wide">E-COURT ASSISTANT</h1>
+                        <p class="text-xs text-emerald-200">PA Bangkinang Kelas IB</p>
+                    </div>
+                </div>
+                <nav class="p-4 space-y-2">
+                    <button onclick="switchMenu('dashboard')" id="btn-dashboard" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-800 text-white transition-all text-sm font-medium cursor-pointer">
+                        <i class="fa-solid fa-chart-pie w-5"></i> Dashboard
+                    </button>
+                    <button onclick="switchMenu('penggugat')" id="btn-penggugat" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800 hover:text-white transition-all text-sm font-medium cursor-pointer">
+                        <i class="fa-solid fa-user-plus w-5"></i> Akun Penggugat
+                    </button>
+                    <button onclick="switchMenu('tergugat')" id="btn-tergugat" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800 hover:text-white transition-all text-sm font-medium cursor-pointer">
+                        <i class="fa-solid fa-user-minus w-5"></i> Akun Tergugat
+                    </button>
+                    <button onclick="switchMenu('persetujuan')" id="btn-persetujuan" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800 hover:text-white transition-all text-sm font-medium cursor-pointer">
+                        <i class="fa-solid fa-file-signature w-5"></i> Dokumen & Surat
+                    </button>
+                    <button onclick="switchMenu('arsip')" id="btn-arsip" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800 hover:text-white transition-all text-sm font-medium cursor-pointer">
+                        <i class="fa-solid fa-box-archive w-5"></i> Arsip Perkara
+                    </button>
+                    <button onclick="switchMenu('pengingat')" id="btn-pengingat" class="menu-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800 hover:text-white transition-all text-sm font-medium cursor-pointer">
+                        <i class="fa-solid fa-bell w-5"></i> Atur Pengingat
+                    </button>
+                </nav>
+            </div>
+            <div class="p-4 border-t border-emerald-800 space-y-2">
+                <button onclick="toggleDarkMode()" class="w-full flex items-center justify-between px-4 py-2 rounded-lg bg-emerald-800 text-xs text-emerald-100 cursor-pointer">
+                    <span>Mode Gelap</span>
+                    <i id="dark-icon" class="fa-solid fa-moon"></i>
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="exportBackup()" class="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs text-center font-medium cursor-pointer"><i class="fa-solid fa-download"></i> Backup</button>
+                    <button onclick="document.getElementById('importFile').click()" class="flex-1 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs text-center font-medium cursor-pointer"><i class="fa-solid fa-upload"></i> Restore</button>
+                    <input type="file" id="importFile" class="hidden" onchange="importBackup(event)" accept=".json">
+                </div>
+                <p class="text-[10px] text-center text-emerald-300 mt-2">v1.4.0 &copy; 2026 PTSP PA BKN</p>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors">
+            <header class="bg-white dark:bg-gray-800 shadow-sm px-8 py-4 flex justify-between items-center no-print">
+                <h2 id="menu-title" class="text-xl font-bold text-gray-800 dark:text-white">Dashboard Analisis</h2>
+                <div class="flex items-center gap-4">
+                    <span id="liveClock" class="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded"></span>
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-ma-green flex items-center justify-center text-white font-bold text-xs">PA</div>
+                        <span class="text-sm font-medium">Petugas PTSP</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-8 flex-1">
+                
+                <div id="toast" class="hidden fixed top-5 right-5 z-50 flex items-center p-4 mb-4 text-gray-500 bg-white rounded-lg shadow dark:text-gray-400 dark:bg-gray-800 border-l-4" role="alert">
+                    <div id="toast-icon" class="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg"></div>
+                    <div id="toast-msg" class="ms-3 text-sm font-normal"></div>
+                </div>
+
+                <section id="menu-dashboard" class="menu-content space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Akun Penggugat</p>
+                                <h3 id="dash-penggugat" class="text-3xl font-bold mt-1">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900 text-ma-green dark:text-emerald-300 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-user-plus"></i></div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Akun Tergugat</p>
+                                <h3 id="dash-tergugat" class="text-3xl font-bold mt-1">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-user-minus"></i></div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Persetujuan Elektronik</p>
+                                <h3 id="dash-persetujuan" class="text-3xl font-bold mt-1">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-300 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-file-signature"></i></div>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Total Data Arsip</p>
+                                <h3 id="dash-total" class="text-3xl font-bold mt-1">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-box-archive"></i></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <h4 class="text-sm font-semibold mb-4 text-gray-500">Tren Harian (7 Hari Terakhir)</h4>
+                            <canvas id="chartHarian" height="120"></canvas>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <h4 class="text-sm font-semibold mb-4 text-gray-500">Distribusi Bulanan Perkara</h4>
+                            <canvas id="chartBulanan" height="120"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-gray-100 dark:border-gray-700 pb-3 mb-4 gap-2">
+                            <div>
+                                <h4 class="text-sm font-bold text-ma-green dark:text-emerald-400 uppercase tracking-wider"><i class="fa-solid fa-list-check mr-2"></i>Rekapitulasi Pembuatan Akun Per Hari</h4>
+                                <p class="text-xs text-gray-400 mt-0.5">Klik pada baris bulan untuk melihat atau menyembunyikan detail harian</p>
+                            </div>
+                            <span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-2.5 py-1 rounded-md font-medium self-start sm:self-center">Sistem Dropdown</span>
+                        </div>
+                        <div id="containerRekapHarian" class="grid grid-cols-1 gap-3">
+                        </div>
+                    </div>
+                </section>
+
+                <section id="menu-form-pihak" class="menu-content hidden">
+                    <form id="pihakForm" onsubmit="savePihak(event)" class="space-y-6">
+                        <input type="hidden" id="form-id">
+                        <input type="hidden" id="form-type">
+                        
+                        <!-- Variabel Tersembunyi untuk Data Berkas File -->
+                        <input type="hidden" id="p-file-pdf-data">
+                        <input type="hidden" id="p-file-pdf-name">
+                        <input type="hidden" id="p-file-word-data">
+                        <input type="hidden" id="p-file-word-name">
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="space-y-6 lg:col-span-1">
+                                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                                    <h3 class="text-md font-bold text-ma-green dark:text-emerald-400 border-b pb-2"><i class="fa-solid fa-folder-open mr-2"></i>Data Perkara</h3>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Nomor Perkara (Opsional)</label>
+                                        <input type="text" id="p-no-perkara" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Contoh: 123/Pdt.G/2026/PA.Bkn">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Tanggal Input Berkas</label>
+                                        <input type="date" id="p-tgl-input" required class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                    </div>
+                                </div>
+
+                                <!-- FITUR UPLOAD BERKAS FILE DENGAN LIMIT PDF YANG LEBIH BESAR -->
+                                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                                    <h3 class="text-md font-bold text-amber-600 dark:text-amber-400 border-b pb-2"><i class="fa-solid fa-cloud-arrow-up mr-2"></i>Upload Lampiran (Opsional)</h3>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">File Dokumen PDF (.pdf) - Max 20MB</label>
+                                        <input type="file" id="p-upload-pdf" accept=".pdf" onchange="handleFileUpload(this, 'pdf')" class="w-full text-xs text-gray-500 border rounded p-1.5 bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
+                                        <span id="label-pdf-status" class="text-[10px] text-gray-400 mt-1 block"></span>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">File Surat/Gugatan Word (.doc, .docx)</label>
+                                        <input type="file" id="p-upload-word" accept=".doc, .docx" onchange="handleFileUpload(this, 'word')" class="w-full text-xs text-gray-500 border rounded p-1.5 bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
+                                        <span id="label-word-status" class="text-[10px] text-gray-400 mt-1 block"></span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                                    <h3 class="text-md font-bold text-ma-green dark:text-emerald-400 border-b pb-2"><i class="fa-solid fa-key mr-2"></i>Kredensial Akun e-Court</h3>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Email Akun e-Court</label>
+                                        <input type="email" id="p-email-ecourt" required oninput="validateEmail(this)" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="nama@email.com">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Username Login</label>
+                                        <div class="flex gap-2">
+                                            <input type="text" id="p-username-ecourt" required class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                            <button type="button" onclick="copyToClipboard('p-username-ecourt')" class="px-3 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 text-xs cursor-pointer"><i class="fa-solid fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Password</label>
+                                        <div class="flex gap-2">
+                                            <input type="text" id="p-pass-ecourt" required class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                            <button type="button" onclick="generatePassword()" class="px-2 bg-amber-500 text-white rounded text-xs cursor-pointer" title="Acak Password"><i class="fa-solid fa-dice"></i></button>
+                                            <button type="button" onclick="copyToClipboard('p-pass-ecourt')" class="px-3 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 text-xs cursor-pointer"><i class="fa-solid fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2 space-y-4">
+                                <h3 class="text-md font-bold text-ma-green dark:text-emerald-400 border-b pb-2"><i class="fa-solid fa-id-card mr-2"></i>Biodata Identitas KTP</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Nama Lengkap</label>
+                                        <input type="text" id="p-nama" required class="w-full border border-emerald-600/30 dark:border-emerald-500/20 rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Nama sesuai KTP">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">NIK (16 Digit)</label>
+                                        <input type="text" id="p-nik" maxlength="16" oninput="validateNIK(this)" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="16 Digit NIK KTP">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Tempat Lahir</label>
+                                        <input type="text" id="p-tempat-lahir" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Contoh: Kota Lama">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Tanggal Lahir</label>
+                                        <input type="date" id="p-tgl-lahir" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Jenis Kelamin</label>
+                                        <select id="p-jk" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                            <option value="">-- Pilih --</option>
+                                            <option value="Laki-laki">Laki-laki</option>
+                                            <option value="Perempuan">Perempuan</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Agama</label>
+                                        <select id="p-agama" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                            <option value="">-- Pilih --</option>
+                                            <option value="Islam">Islam</option>
+                                            <option value="Kristen">Kristen</option>
+                                            <option value="Katolik">Katolik</option>
+                                            <option value="Hindu">Hindu</option>
+                                            <option value="Budha">Budha</option>
+                                            <option value="Khonghucu">Khonghucu</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Pekerjaan</label>
+                                        <input type="text" id="p-pekerjaan" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Mengurus Rumah Tangga, Wiraswasta, dll">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Pendidikan Terakhir</label>
+                                        <select id="p-pendidikan" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                            <option value="">-- Pilih --</option>
+                                            <option value="SD">SD/Sederajat</option>
+                                            <option value="SMP">SMP/Sederajat</option>
+                                            <option value="SMA">SMA/Sederajat</option>
+                                            <option value="D3">Diploma D3</option>
+                                            <option value="S1">Sarjana S1</option>
+                                            <option value="S2">Pascasarjana S2</option>
+                                            <option value="S3">Doktor S3</option>
+                                            <option value="Tidak Sekolah">Tidak Tamat Sekolah</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Nomor HP / WhatsApp</label>
+                                        <input type="tel" id="p-hp" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="08xxxxxxxxxx">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase mb-1">Email Pribadi</label>
+                                        <input type="email" id="p-email-pribadi" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="nama@email.com">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase mb-1">Alamat Domisili Tempat Tinggal</label>
+                                    <textarea id="p-alamat" rows="2" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Contoh: Silam Tengah, RT 001 RW 002..."></textarea>
+                                </div>
+
+                                <!-- KOLOM TAMBAHAN: CATATAN / NOTE KASUS UNTUK PIHAK BERPERKARA -->
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-amber-600 dark:text-amber-400 mb-1"><i class="fa-solid fa-note-sticky mr-1"></i> Catatan Khusus / Note Perkara (Penting)</label>
+                                    <textarea id="p-catatan" rows="2" class="w-full border border-amber-500/40 rounded p-2 text-sm bg-amber-50/20 dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400" placeholder="Contoh: Akte kelahiran anak belum dilampirkan, KTP suami buram, dll."></textarea>
+                                </div>
+
+                                <div class="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700 space-y-3">
+                                    <h4 class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
+                                        <i class="fa-solid fa-building-columns"></i> Informasi Rekening Bank Pihak
+                                    </h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div>
+                                            <label class="block text-[11px] font-semibold uppercase mb-0.5">Nama Bank</label>
+                                            <input type="text" id="p-bank-nama" class="w-full border rounded p-1.5 text-xs bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Contoh: Bank BRI">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-semibold uppercase mb-0.5">Nomor Rekening</label>
+                                            <input type="text" id="p-bank-nomor" class="w-full border rounded p-1.5 text-xs bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Nomor Rekening">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-semibold uppercase mb-0.5">Nama Pemilik</label>
+                                            <input type="text" id="p-bank-pemilik" class="w-full border rounded p-1.5 text-xs bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Sesuai Buku Tabungan">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+                                    <h4 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide flex items-center gap-1 mb-2">
+                                        <i class="fa-solid fa-receipt"></i> Administrasi Perkara & SKUM
+                                    </h4>
+                                    <label class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors w-full sm:w-max">
+                                        <input type="checkbox" id="p-skum-status" class="w-4 h-4 text-ma-green border-gray-300 rounded focus:ring-emerald-500">
+                                        <div>
+                                            <span class="text-xs font-bold block text-gray-800 dark:text-gray-200">SKUM Sudah Dicetak / Panjar Dibayar</span>
+                                            <span class="text-[10px] text-gray-400 block">Kosongkan jika pihak belum membayar panjar perkara</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                            <button type="button" onclick="resetPihakForm()" class="px-5 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 rounded-lg text-sm font-semibold cursor-pointer">Reset Form</button>
+                            <button type="submit" class="px-6 py-2 bg-ma-green text-white hover-ma-green rounded-lg text-sm font-semibold shadow-md cursor-pointer"><i class="fa-solid fa-floppy-disk mr-2"></i>Simpan Data</button>
+                            <button type="button" id="btn-cetak-akun-form" onclick="printAkunLangsung()" class="hidden px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold cursor-pointer"><i class="fa-solid fa-print mr-2"></i>Cetak Nota Akun</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section id="menu-persetujuan-dokumen" class="menu-content hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-1 space-y-4">
+                            <h3 class="text-md font-bold text-ma-green dark:text-emerald-400 border-b pb-2"><i class="fa-solid fa-pen-to-square mr-2"></i>Parameter Surat</h3>
+                            
+                            <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600 space-y-2">
+                                <span class="text-xs font-bold tracking-wider text-ma-green dark:text-emerald-400 uppercase block"><i class="fa-solid fa-filter mr-1"></i> Saring Berkas Pihak</span>
+                                <div class="space-y-2">
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] font-semibold uppercase text-gray-500 mb-0.5">Bulan Input</label>
+                                            <select id="s-filter-bulan" onchange="populatePihakDropdown()" class="w-full border rounded p-1.5 text-xs bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-semibold uppercase text-gray-500 mb-0.5">Tahun Input</label>
+                                            <select id="s-filter-tahun" onchange="populatePihakDropdown()" class="w-full border rounded p-1.5 text-xs bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-semibold uppercase text-gray-500 mb-0.5">Tanggal Spesifik (Opsional)</label>
+                                        <input type="date" id="s-filter-tanggal" onchange="populatePihakDropdown()" class="w-full border rounded p-1.5 text-xs bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase mb-1">Pilih dari Data Terarsip</label>
+                                <select id="s-pilih-pihak" onchange="loadPihakKeSurat(this.value)" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                    <option value="">-- Pilih Pihak --</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase mb-1">Jenis Dokumen Surat</label>
+                                <select id="s-jenis-dokumen" onchange="toggleFormRekening(); generatePreviewSurat();" class="w-full border border-amber-500 rounded p-2 text-sm font-semibold bg-amber-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                    <option value="persetujuan-elektronik">1. Surat Persetujuan Beracara Elektronik</option>
+                                    <option value="rekening-pribadi">2. Surat Pernyataan Rekening Pribadi</option>
+                                    <option value="rekening-oranglain">3. Surat Pernyataan Rekening Orang Lain</option>
+                                </select>
+                            </div>
+
+                            <hr class="border-gray-200 dark:border-gray-700">
+                            
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase mb-1">Nama Lengkap Prinsipal</label>
+                                    <input type="text" id="s-nama" oninput="generatePreviewSurat()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                </div>
+                                <div id="div-s-ttl">
+                                    <label class="block text-xs font-semibold uppercase mb-1">Tempat & Tanggal Lahir</label>
+                                    <input type="text" id="s-ttl" oninput="generatePreviewSurat()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Contoh: Kota Lama, 08 November 1982">
+                                </div>
+                                <div id="div-s-pendidikan">
+                                    <label class="block text-xs font-semibold uppercase mb-1">Pendidikan</label>
+                                    <input type="text" id="s-pendidikan" oninput="generatePreviewSurat()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase mb-1">Pekerjaan</label>
+                                    <input type="text" id="s-pekerjaan" oninput="generatePreviewSurat()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase mb-1">Tempat Tinggal / Alamat</label>
+                                    <input type="text" id="s-alamat" oninput="generatePreviewSurat()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                </div>
+                                <div id="div-s-email">
+                                    <label class="block text-xs font-semibold uppercase mb-1">Alamat Email e-Court</label>
+                                    <input type="email" id="s-email" oninput="generatePreviewSurat()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                </div>
+                                <div id="div-s-status">
+                                    <label class="block text-xs font-semibold uppercase mb-1">Kedudukan Hukum</label>
+                                    <select id="s-status" onchange="generatePreviewSurat()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                        <option value="Prinsipal Pemohon">Prinsipal Pemohon</option>
+                                        <option value="Prinsipal Penggugat">Prinsipal Penggugat</option>
+                                        <option value="Prinsipal Termohon">Prinsipal Termohon</option>
+                                        <option value="Prinsipal Tergugat">Prinsipal Tergugat</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="panel-parameter-rekening" class="hidden p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900 space-y-3">
+                                <span class="text-xs font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase block"><i class="fa-solid fa-building-columns mr-1"></i> Informasi Rekening Bank</span>
+                                <div>
+                                    <label class="block text-[10px] font-semibold uppercase text-gray-500 mb-0.5">Nama Bank</label>
+                                    <input type="text" id="s-bank-nama" value="Bank BRI" oninput="generatePreviewSurat()" class="w-full border rounded p-1.5 text-xs bg-white dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Contoh: Bank BRI / Bank Syariah Indonesia">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-semibold uppercase text-gray-500 mb-0.5">Nomor Rekening</label>
+                                    <input type="text" id="s-bank-nomor" oninput="generatePreviewSurat()" class="w-full border rounded p-1.5 text-xs bg-white dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Masukkan nomor rekening">
+                                </div>
+                                <div>
+                                    <label id="lbl-bank-pemilik" class="block text-[10px] font-semibold uppercase text-gray-500 mb-0.5">Nama Rekening (Sesuai Buku Tabungan)</label>
+                                    <input type="text" id="s-bank-pemilik" oninput="generatePreviewSurat()" class="w-full border rounded p-1.5 text-xs bg-white dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Nama pemilik rekening">
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 space-y-3">
+                                <span class="text-xs font-bold tracking-wider text-gray-400 uppercase block"><i class="fa-solid fa-calendar-day mr-1"></i> Tempat & Tanggal TTD</span>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] font-semibold uppercase text-gray-500 mb-0.5">Tempat Surat</label>
+                                        <input type="text" id="s-tempat-surat" value="Bangkinang" oninput="generatePreviewSurat()" class="w-full border rounded p-1.5 text-xs bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-semibold uppercase text-gray-500 mb-0.5">Tanggal Surat</label>
+                                        <input type="date" id="s-tgl-surat" onchange="generatePreviewSurat()" class="w-full border rounded p-1.5 text-xs bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-1 flex gap-2">
+                                <button onclick="generatePreviewSurat()" class="w-full py-2 bg-emerald-700 text-white rounded font-semibold text-sm hover:bg-emerald-800 transition-all cursor-pointer"><i class="fa-solid fa-arrows-rotate mr-1"></i> Update</button>
+                                <button onclick="cetakSuratPersetujuan()" class="w-full py-2 bg-blue-600 text-white rounded font-semibold text-sm hover:bg-blue-700 transition-all cursor-pointer"><i class="fa-solid fa-print mr-1"></i> Cetak</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-200 p-8 rounded-xl shadow-inner lg:col-span-2 text-black overflow-x-auto">
+                            <div id="preview-surat-box" class="w-[180mm] min-h-[250mm] mx-auto bg-white p-12 border text-sm shadow-md text-justify leading-relaxed" style="font-family: Arial, sans-serif;">
+                                <p class="text-center text-gray-400 py-20">Isi formulir parameter atau pilih pihak untuk membuat dokumen persetujuan.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="menu-arsip-data" class="menu-content hidden space-y-6">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div class="md:col-span-1">
+                            <label class="block text-xs font-semibold uppercase mb-1">Pencarian Cepat</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                <input type="text" id="searchArsip" oninput="renderArsipTable()" class="w-full border rounded pl-9 p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white" placeholder="Cari Nama, NIK, Username...">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase mb-1">Filter Kedudukan</label>
+                            <select id="filterStatus" onchange="renderArsipTable()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                <option value="All">Semua Status</option>
+                                <option value="Penggugat">Penggugat</option>
+                                <option value="Tergugat">Tergugat</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase mb-1">Filter Pembayaran SKUM</label>
+                            <select id="filterSKUM" onchange="renderArsipTable()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                <option value="All">Semua Status SKUM</option>
+                                <option value="Belum">Belum Bayar (SKUM Belum Cetak)</option>
+                                <option value="Sudah">Sudah Bayar / Lunas</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase mb-1">Filter Tanggal Input</label>
+                            <input type="date" id="filterTanggal" onchange="renderArsipTable()" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <button onclick="exportToExcel()" class="flex-1 py-2 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 transition-all text-center cursor-pointer"><i class="fa-solid fa-file-excel mr-1"></i> Excel</button>
+                            <button onclick="clearFilter()" class="py-2 px-3 bg-gray-200 dark:bg-gray-600 rounded text-xs font-semibold hover:bg-gray-300 text-center cursor-pointer" title="Hapus Filter"><i class="fa-solid fa-filter-circle-xmark"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-200 uppercase text-[11px] font-bold tracking-wider border-b border-gray-200 dark:border-gray-600">
+                                    <tr>
+                                        <th class="p-4 w-12 text-center">No</th>
+                                        <th class="p-4 cursor-pointer" onclick="changeSort('tglInput')">Tanggal <i class="fa-solid fa-sort text-[10px]"></i></th>
+                                        <th class="p-4 cursor-pointer" onclick="changeSort('nama')">Nama Pihak <i class="fa-solid fa-sort text-[10px]"></i></th>
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4">Identitas (NIK/HP)</th>
+                                        <th class="p-4">e-Court & SKUM</th>
+                                        <th class="p-4">Lampiran Berkas</th>
+                                        <!-- KOLOM BARU DI TABEL ARSIP UNTUK MENAMPILKAN CATATAN / NOTE KASUS -->
+                                        <th class="p-4 w-48">Catatan/Note Khusus</th>
+                                        <th class="p-4 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="arsipTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="menu-pengingat" class="menu-content hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                            <div class="border-b pb-2">
+                                <h3 class="text-md font-bold text-ma-green dark:text-emerald-400"><i class="fa-solid fa-bell-ring mr-2"></i>Konfigurasi Alarm Peringatan</h3>
+                                <p class="text-xs text-gray-400 mt-0.5">Atur kapan teks pengingat otomatis akan dimunculkan ke sistem.</p>
+                            </div>
+                            <input type="hidden" id="reminder-id">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase mb-1">Isi Pesan Peringatan</label>
+                                <textarea id="r-message" rows="3" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-medium" placeholder="Contoh: Stop Pendaftaran Perkara Akhir Bulan Mei 2026!"></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase mb-1">Tanggal Mulai</label>
+                                    <input type="date" id="r-date" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase mb-1">Waktu/Jam Mulai</label>
+                                    <input type="time" id="r-time" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase mb-1">Status Pengingat Aktif</label>
+                                <select id="r-status" class="w-full border rounded p-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold">
+                                    <option value="aktif">Tampilkan Sesuai Waktu (Aktif)</option>
+                                    <option value="nonaktif">Sembunyikan Total (Non-Aktif)</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button onclick="clearFormReminder()" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded text-xs font-bold hover:bg-gray-300">Batal/Reset</button>
+                                <button onclick="saveReminder()" class="flex-1 py-2 bg-ma-green text-white rounded text-xs font-bold hover-ma-green"><i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Alarm</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 lg:col-span-2 space-y-4">
+                            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider"><i class="fa-solid fa-list mr-2"></i>Daftar Pengingat Akhip Bulan</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead class="bg-gray-50 dark:bg-gray-700 text-gray-500 font-bold uppercase border-b border-gray-100 dark:divide-gray-600">
+                                        <tr>
+                                            <th class="p-3">Pesan / Pengingat</th>
+                                            <th class="p-3">Waktu Pemicu</th>
+                                            <th class="p-3">Status</th>
+                                            <th class="p-3 text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reminderTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="printArea" class="hidden bg-white text-black"></div>
+
+    <script>
+        let async function loadData() {
+
+    const snapshot = await get(
+      ref(database, 'pihak')
+    );
+
+    if(snapshot.exists()) {
+
+        dbPihak = [];
+
+        snapshot.forEach(child => {
+
+            dbPihak.push({
+                id: child.key,
+                ...child.val()
+            });
+
+        });
+
+    }
+
+    renderArsipTable();
+    updateDashboardStats();
+}
+        let dbReminders = JSON.parse(localStorage.getItem('db_ecourt_reminders')) || [];
+        let currentMenu = 'dashboard';
+        let sortField = 'tglInput';
+        let sortAsc = false;
+        let myChartHarian, myChartBulanan;
+        let alarmDismissed = false; 
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initClock();
+            initFilterBulanTahunSurat(); 
+            switchMenu('dashboard');
+            autoSetTanggalInput();
+            initCharts();
+            updateDashboardStats();
+            autoSetTanggalSurat();
+            checkReminderTrigger(); 
+            
+            // Event listener global untuk menutup dropdown menu saat klik di luar area
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.wa-dropdown-container')) {
+                    document.querySelectorAll('.wa-dropdown-menu').forEach(menu => menu.classList.add('hidden'));
+                }
+            });
+        });
+
+        function initClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('liveClock').innerText = now.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
+                checkReminderTrigger(); 
+            }, 1000);
+        }
+
+        function checkReminderTrigger() {
+            if (dbReminders.length === 0 || alarmDismissed) return;
+
+            const sekarang = new Date();
+            let alarmDitemukan = false;
+            let pesanAlarm = "";
+
+            dbReminders.forEach(r => {
+                if (r.status === 'aktif' && r.targetDate && r.targetTime) {
+                    const stringWaktuTarget = `${r.targetDate}T${r.targetTime}`;
+                    const waktuTarget = new Date(stringWaktuTarget);
+
+                    if (sekarang >= waktuTarget) {
+                        alarmDitemukan = true;
+                        pesanAlarm = r.message;
+                    }
+                }
+            });
+
+            const banner = document.getElementById('containerAlarmOtomatis');
+            if (alarmDitemukan) {
+                document.getElementById('txtAlarmOtomatis').innerText = pesanAlarm;
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function tutupSementaraAlarm() {
+            alarmDismissed = true;
+            document.getElementById('containerAlarmOtomatis').classList.add('hidden');
+            showToast('Pengingat disembunyikan sementara!');
+        }
+
+        function renderReminderTable() {
+            const tbody = document.getElementById('reminderTableBody');
+            tbody.innerHTML = '';
+
+            if (dbReminders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">Belum ada pengaturan jadwal pengingat.</td></tr>`;
+                return;
+            }
+
+            dbReminders.forEach(r => {
+                const badgeStatus = r.status === 'aktif' 
+                    ? `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">Aktif</span>`
+                    : `<span class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded font-semibold">Non-Aktif</span>`;
+                
+                const formatTgl = new Date(r.targetDate).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'});
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="p-3 font-medium">${r.message}</td>
+                        <td class="p-3 font-mono">${formatTgl} @ ${r.targetTime} WIB</td>
+                        <td class="p-3">${badgeStatus}</td>
+                        <td class="p-3 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="toggleStatusReminder('${r.id}')" class="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Alihkan Status Sembunyikan/Munculkan"><i class="fa-solid fa-eye"></i></button>
+                                <button onclick="editReminder('${r.id}')" class="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteReminder('${r.id}')" class="p-1 text-red-600 hover:bg-red-50 rounded" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function saveReminder() {
+            const id = document.getElementById('reminder-id').value;
+            const message = document.getElementById('r-message').value;
+            const targetDate = document.getElementById('r-date').value;
+            const targetTime = document.getElementById('r-time').value;
+            const status = document.getElementById('r-status').value;
+
+            if (!message || !targetDate || !targetTime) {
+                alert('Mohon lengkapi isi pesan pengingat, tanggal, dan waktu pemicu!');
+                return;
+            }
+
+            const reminderData = {
+                id: id ? id : 'REM-' + Date.now(),
+                message: message,
+                targetDate: targetDate,
+                targetTime: targetTime,
+                status: status
+            };
+
+            if (id) {
+                const idx = dbReminders.findIndex(r => r.id === id);
+                if (idx !== -1) dbReminders[idx] = reminderData;
+                showToast('Pengingat diperbarui!');
+            } else {
+                dbReminders.push(reminderData);
+                showToast('Pengingat baru disimpan!');
+            }
+
+            const dataRef = push(
+  ref(database, 'pihak')
+);
+
+set(dataRef, pihakData);
+        }
+
+        function editReminder(id) {
+            const r = dbReminders.find(item => item.id === id);
+            if (!r) return;
+
+            document.getElementById('reminder-id').value = r.id;
+            document.getElementById('r-message').value = r.message;
+            document.getElementById('r-date').value = r.targetDate;
+            document.getElementById('r-time').value = r.targetTime;
+            document.getElementById('r-status').value = r.status;
+        }
+
+        function toggleStatusReminder(id) {
+            const idx = dbReminders.findIndex(item => item.id === id);
+            if (idx !== -1) {
+                dbReminders[idx].status = dbReminders[idx].status === 'aktif' ? 'nonaktif' : 'aktif';
+                localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
+                showToast('Status kemunculan peringatan diubah!');
+                renderReminderTable();
+                alarmDismissed = false;
+                checkReminderTrigger();
+            }
+        }
+
+        function deleteReminder(id) {
+            if (confirm('Hapus pengaturan pengingat ini dari sistem?')) {
+                dbReminders = dbReminders.filter(item => item.id !== id);
+                localStorage.setItem('db_ecourt_reminders', JSON.stringify(dbReminders));
+                showToast('Pengingat berhasil dihapus!');
+                renderReminderTable();
+                checkReminderTrigger();
+            }
+        }
+
+        function clearFormReminder() {
+            document.getElementById('reminder-id').value = '';
+            document.getElementById('r-message').value = '';
+            document.getElementById('r-date').value = '';
+            document.getElementById('r-time').value = '';
+            document.getElementById('r-status').value = 'aktif';
+        }
+
+        function handleFileUpload(inputElement, fileType) {
+            const file = inputElement.files[0];
+            const statusLabel = document.getElementById(`label-${fileType}-status`);
+            
+            if (!file) {
+                document.getElementById(`p-file-${fileType}-data`).value = '';
+                document.getElementById(`p-file-${fileType}-name`).value = '';
+                statusLabel.innerText = '';
+                return;
+            }
+
+            if (fileType === 'pdf') {
+                if (file.size > 20 * 1024 * 1024) { 
+                    alert('Ukuran file PDF terlalu besar! Maksimum ukuran file PDF di sistem ini adalah 20MB.');
+                    inputElement.value = '';
+                    return;
+                }
+            } else {
+                if (file.size > 3 * 1024 * 1024) {
+                    alert('Ukuran file Word terlalu besar! Maksimum ukuran file Word adalah 3MB.');
+                    inputElement.value = '';
+                    return;
+                }
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById(`p-file-${fileType}-data`).value = e.target.result;
+                document.getElementById(`p-file-${fileType}-name`).value = file.name;
+                statusLabel.innerText = `✓ Terunggah: ${file.name}`;
+                statusLabel.className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 block";
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function downloadAttachedFile(base64Data, filename) {
+            if(!base64Data) return;
+            const link = document.createElement('a');
+            link.href = base64Data;
+            link.download = filename;
+            link.click();
+        }
+
+        function initFilterBulanTahunSurat() {
+            const selectBulan = document.getElementById('s-filter-bulan');
+            const selectTahun = document.getElementById('s-filter-tahun');
+            
+            const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            const sekarang = new Date();
+            const bulanSkg = sekarang.getMonth(); 
+            const tahunSkg = 2026;
+
+            selectBulan.innerHTML = '';
+            namaBulan.forEach((bln, idx) => {
+                let opt = document.createElement('option');
+                opt.value = idx; 
+                opt.text = bln;
+                if(idx === bulanSkg) opt.selected = true;
+                selectBulan.appendChild(opt);
+            });
+
+            selectTahun.innerHTML = '';
+            for(let th = 2024; th <= 2030; th++) {
+                let opt = document.createElement('option');
+                opt.value = th;
+                opt.text = th;
+                if(th === tahunSkg) opt.selected = true;
+                selectTahun.appendChild(opt);
+            }
+        }
+
+        function autoSetTanggalInput() {
+            document.getElementById('p-tgl-input').value = new Date().toISOString().split('T')[0];
+        }
+
+        function autoSetTanggalSurat() {
+            document.getElementById('s-tgl-surat').value = new Date().toISOString().split('T')[0];
+        }
+
+        function switchMenu(menu) {
+            currentMenu = menu;
+            document.querySelectorAll('.menu-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.menu-btn').forEach(el => el.classList.remove('bg-emerald-800', 'text-white'));
+            
+            let title = "Dashboard Analisis";
+            
+            if (menu === 'dashboard') {
+                document.getElementById('menu-dashboard').classList.remove('hidden');
+                document.getElementById('btn-dashboard').classList.add('bg-emerald-800', 'text-white');
+                updateDashboardStats();
+            } else if (menu === 'penggugat') {
+                title = "Registrasi Akun e-Court Penggugat";
+                document.getElementById('menu-form-pihak').classList.remove('hidden');
+                document.getElementById('btn-penggugat').classList.add('bg-emerald-800', 'text-white');
+                setupFormPihak('Penggugat');
+            } else if (menu === 'tergugat') {
+                title = "Registrasi Akun e-Court Tergugat";
+                document.getElementById('menu-form-pihak').classList.remove('hidden');
+                document.getElementById('btn-tergugat').classList.add('bg-emerald-800', 'text-white');
+                setupFormPihak('Tergugat');
+            } else if (menu === 'persetujuan') {
+                title = "Generator Dokumen & Surat Pernyataan PTSP";
+                document.getElementById('menu-persetujuan-dokumen').classList.remove('hidden');
+                document.getElementById('btn-persetujuan').classList.add('bg-emerald-800', 'text-white');
+                populatePihakDropdown();
+                toggleFormRekening();
+                generatePreviewSurat();
+            } else if (menu === 'arsip') {
+                title = "Gudang Arsip Data Pihak Berperkara";
+                document.getElementById('menu-arsip-data').classList.remove('hidden');
+                document.getElementById('btn-arsip').classList.add('bg-emerald-800', 'text-white');
+                renderArsipTable();
+            } else if (menu === 'pengingat') { 
+                title = "Atur Pengingat Penutupan Perkara Akhir Bulan";
+                document.getElementById('menu-pengingat').classList.remove('hidden');
+                document.getElementById('btn-pengingat').classList.add('bg-emerald-800', 'text-white');
+                renderReminderTable();
+                clearFormReminder();
+            }
+            
+            document.getElementById('menu-title').innerText = title;
+        }
+
+        function validateNIK(input) {
+            input.value = input.value.replace(/[^0-9]/g, '');
+            if (input.value.length > 0 && input.value.length < 16) {
+                input.setCustomValidity("Jika diisi, NIK harus tepat 16 digit!");
+            } else {
+                input.setCustomValidity("");
+            }
+        }
+
+        function validateEmail(input) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!re.test(input.value)) {
+                input.setCustomValidity("Format email salah!");
+            } else {
+                input.setCustomValidity("");
+                const u = document.getElementById('p-username-ecourt');
+                if(!u.value) u.value = input.value;
+            }
+        }
+
+        function generatePassword() {
+            const chars = "abcdefghijklmnopqrstuvwxyz";
+            let pass = "";
+            for (let i = 0; i < 3; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            document.getElementById('p-pass-ecourt').value = pass;
+        }
+
+        function copyToClipboard(id) {
+            const el = document.getElementById(id);
+            el.select();
+            document.execCommand('copy');
+            showToast('Teks disalin!');
+        }
+
+        function setupFormPihak(type) {
+            resetPihakForm();
+            document.getElementById('form-type').value = type;
+            document.getElementById('form-id').value = '';
+            document.getElementById('p-skum-status').checked = false; 
+            document.getElementById('btn-cetak-akun-form').classList.add('hidden');
+            generatePassword();
+            autoSetTanggalInput();
+        }
+
+        function resetPihakForm() {
+            document.getElementById('pihakForm').reset();
+            document.getElementById('form-id').value = '';
+            document.getElementById('p-skum-status').checked = false;
+            
+            document.getElementById('p-file-pdf-data').value = '';
+            document.getElementById('p-file-pdf-name').value = '';
+            document.getElementById('p-file-word-data').value = '';
+            document.getElementById('p-file-word-name').value = '';
+            document.getElementById('label-pdf-status').innerText = '';
+            document.getElementById('label-word-status').innerText = '';
+            
+            autoSetTanggalInput();
+        }
+
+        function savePihak(e) {
+            e.preventDefault();
+            const id = document.getElementById('form-id').value;
+            const type = document.getElementById('form-type').value;
+            const fallbackNama = document.getElementById('p-nama').value || 'Tanpa Nama KTP';
+
+            const pihakData = {
+                id: id ? id : 'ID-' + Date.now(),
+                type: type,
+                noPerkara: document.getElementById('p-no-perkara').value,
+                tglInput: document.getElementById('p-tgl-input').value,
+                nama: fallbackNama,
+                nik: document.getElementById('p-nik').value || '-',
+                tempatLahir: document.getElementById('p-tempat-lahir').value || '-',
+                tglLahir: document.getElementById('p-tgl-lahir').value || '',
+                jk: document.getElementById('p-jk').value || '-',
+                agama: document.getElementById('p-agama').value || '-',
+                pekerjaan: document.getElementById('p-pekerjaan').value || '-',
+                pendidikan: document.getElementById('p-pendidikan').value || '-',
+                hp: document.getElementById('p-hp').value || '-',
+                emailPribadi: document.getElementById('p-email-pribadi').value || '-',
+                emailEcourt: document.getElementById('p-email-ecourt').value,
+                usernameEcourt: document.getElementById('p-username-ecourt').value,
+                passEcourt: document.getElementById('p-pass-ecourt').value,
+                alamat: document.getElementById('p-alamat').value || '-',
+                bankNama: document.getElementById('p-bank-nama').value || '-',
+                bankNomor: document.getElementById('p-bank-nomor').value || '-',
+                bankPemilik: document.getElementById('p-bank-pemilik').value || '-',
+                isLunasSKUM: document.getElementById('p-skum-status').checked,
+                catatan: document.getElementById('p-catatan').value || '',
+                fileNamePdf: document.getElementById('p-file-pdf-name').value || '',
+                fileDataPdf: document.getElementById('p-file-pdf-data').value || '',
+                fileNameWord: document.getElementById('p-file-word-name').value || '',
+                fileDataWord: document.getElementById('p-file-word-data').value || ''
+            };
+
+            if (id) {
+                const index = dbPihak.findIndex(p => p.id === id);
+                if(index !== -1) dbPihak[index] = pihakData;
+                showToast('Arsip data diperbarui!');
+            } else {
+                dbPihak.push(pihakData);
+                showToast('Data pihak berhasil disimpan!');
+            }
+
+            localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
+            document.getElementById('form-id').value = pihakData.id;
+            document.getElementById('btn-cetak-akun-form').classList.remove('hidden');
+            updateDashboardStats();
+        }
+
+        function editPihak(id) {
+            const pihak = dbPihak.find(p => p.id === id);
+            if (!pihak) return;
+
+            switchMenu(pihak.type.toLowerCase());
+            
+            document.getElementById('form-id').value = pihak.id;
+            document.getElementById('form-type').value = pihak.type;
+            document.getElementById('p-no-perkara').value = pihak.noPerkara;
+            document.getElementById('p-tgl-input').value = pihak.tglInput;
+            document.getElementById('p-nama').value = pihak.nama === 'Tanpa Nama KTP' ? '' : pihak.nama;
+            document.getElementById('p-nik').value = pihak.nik === '-' ? '' : pihak.nik;
+            document.getElementById('p-tempat-lahir').value = pihak.tempatLahir === '-' ? '' : pihak.tempatLahir;
+            document.getElementById('p-tgl-lahir').value = pihak.tglLahir;
+            document.getElementById('p-jk').value = pihak.jk === '-' ? '' : pihak.jk;
+            document.getElementById('p-agama').value = pihak.agama === '-' ? '' : pihak.agama;
+            document.getElementById('p-pekerjaan').value = pihak.pekerjaan === '-' ? '' : pihak.pekerjaan;
+            document.getElementById('p-pendidikan').value = pihak.pendidikan === '-' ? '' : pihak.pendidikan;
+            document.getElementById('p-hp').value = pihak.hp === '-' ? '' : pihak.hp;
+            document.getElementById('p-email-pribadi').value = pihak.emailPribadi === '-' ? '' : pihak.emailPribadi;
+            document.getElementById('p-email-ecourt').value = pihak.emailEcourt;
+            document.getElementById('p-username-ecourt').value = pihak.usernameEcourt;
+            document.getElementById('p-pass-ecourt').value = pihak.passEcourt;
+            document.getElementById('p-alamat').value = pihak.alamat === '-' ? '' : pihak.alamat;
+            document.getElementById('p-catatan').value = pihak.catatan || '';
+            document.getElementById('p-bank-nama').value = pihak.bankNama === '-' ? '' : (pihak.bankNama || '');
+            document.getElementById('p-bank-nomor').value = pihak.bankNomor === '-' ? '' : (pihak.bankNomor || '');
+            document.getElementById('p-bank-pemilik').value = pihak.bankPemilik === '-' ? '' : (pihak.bankPemilik || '');
+            document.getElementById('p-skum-status').checked = pihak.isLunasSKUM || false;
+            document.getElementById('p-file-pdf-name').value = pihak.fileNamePdf || '';
+            document.getElementById('p-file-pdf-data').value = pihak.fileDataPdf || '';
+            document.getElementById('p-file-word-name').value = pihak.fileNameWord || '';
+            document.getElementById('p-file-word-data').value = pihak.fileDataWord || '';
+            
+            if(pihak.fileNamePdf) {
+                document.getElementById('label-pdf-status').innerText = `✓ File Tersimpan: ${pihak.fileNamePdf}`;
+                document.getElementById('label-pdf-status').className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 block";
+            } else {
+                document.getElementById('label-pdf-status').innerText = '';
+            }
+
+            if(pihak.fileNameWord) {
+                document.getElementById('label-word-status').innerText = `✓ File Tersimpan: ${pihak.fileNameWord}`;
+                document.getElementById('label-word-status').className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 block";
+            } else {
+                document.getElementById('label-word-status').innerText = '';
+            }
+
+            document.getElementById('btn-cetak-akun-form').classList.remove('hidden');
+        }
+
+        function deletePihak(id) {
+            if (confirm('Hapus berkas ini dari arsip lokal?')) {
+                remove(
+  ref(database, 'pihak/' + id)
+);
+                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
+                showToast('Arsip dihapus!');
+                renderArsipTable();
+                updateDashboardStats();
+            }
+        }
+
+        function toggleSkumStatusDirectly(id) {
+            const index = dbPihak.findIndex(p => p.id === id);
+            if (index !== -1) {
+                dbPihak[index].isLunasSKUM = !dbPihak[index].isLunasSKUM;
+                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
+                const statusMsg = dbPihak[index].isLunasSKUM ? "SKUM Terkonfirmasi Lunas!" : "SKUM Diubah Ke Belum Bayar";
+                showToast(statusMsg);
+                renderArsipTable();
+                updateDashboardStats();
+            }
+        }
+
+        // FITUR UTAMA: ENGINE PENGIRIMAN CHAT OTOMATIS KE WHATSAPP PIHAK (Gbr 1, Gbr 2, Gbr 3)
+        function openWADropdown(id) {
+            // Sembunyikan semua dropdown menu yang sedang terbuka
+            document.querySelectorAll('.wa-dropdown-menu').forEach(menu => menu.classList.add('hidden'));
+            // Tampilkan dropdown spesifik baris data terpilih
+            const targetMenu = document.getElementById('wa-menu-' + id);
+            if(targetMenu) targetMenu.classList.remove('hidden');
+        }
+
+        function kirimWhatsApp(id, templateType) {
+            const pihak = dbPihak.find(p => p.id === id);
+            if(!pihak || pihak.hp === '-' || pihak.hp === '') {
+                alert('Gagal memproses! Nomor HP/WhatsApp pihak tidak valid atau kosong.');
+                return;
+            }
+
+            // Normalisasi nomor telepon ke format internasional standar (62)
+            let phoneNo = pihak.hp.replace(/[^0-9]/g, '');
+            if(phoneNo.startsWith('0')) {
+                phoneNo = '62' + phoneNo.slice(1);
+            }
+
+            let message = "";
+
+            if (templateType === 1) {
+                // Sesuai contoh teks di Gambar 1 (image_f2341e.png)
+                message = "Assalamu'alaikum warahmatullahi wabarakatuh.\n" +
+                          "Yth. Bapak/Ibu,\n\n" +
+                          "Kami dari *Pengadilan Agama Bangkinang* mengonfirmasi bahwa perkara yang Bapak/Ibu daftarkan *telah dapat dilakukan pembayaran panjar biaya perkara* melalui *BRILink maupun transfer bank*\n\n" +
+                          "Bersama ini kami lampirkan *Virtual Account/Kode Pembayaran* untuk proses pembayaran perkara atas nama *" + pihak.nama.toUpperCase() + "*\n\n" +
+                          "⏰ *Batas waktu pembayaran adalah 1 x 24 jam* sejak kode pembayaran diterbitkan. Apabila pembayaran tidak dilakukan dalam batas waktu tersebut, maka perkara *tidak dapat diproses lebih lanjut*\n\n" +
+                          "Demikian kami sampaikan. Atas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.\n\n" +
+                          "Wassalamu'alaikum warahmatullahi wabarakatuh.\n" +
+                          "*PTSP Pengadilan Agama Bangkinang*\n\n" +
+                          "*Catatan Penting:*\n" +
+                          "• Pembayaran *tidak dapat dilakukan* melalui *DANA, OVO, GoPay, maupun ShopeePay*.\n" +
+                          "• Pembayaran dapat dilakukan melalui *BRILink* atau *transfer antar bank yang mendukung.*";
+            } 
+            else if (templateType === 2) {
+                // Sesuai contoh teks di Gambar 2 (image_f230fe.png)
+                message = "Assalamu'alaikum warahmatullahi wabarakatuh.\n" +
+                          "Yth. Bapak/Ibu,\n\n" +
+                          "Berikut kami lampirkan *akun e-Court* milik Bapak/Ibu.\n\n" +
+                          "Akun *e-Court* digunakan untuk memudahkan layanan perkara secara elektronik di Pengadilan Agama, antara lain:\n" +
+                          "• Penerima *panggilan dan pemberitahuan sidang* secara elektronik\n" +
+                          "• Akses *informasi tahapan dan status perkara* secara real time\n\n" +
+                          "Dengan akun e-Court ini, Bapak/Ibu dapat mengakses layanan pengadilan dengan lebih *mudah, cepat, dan transparan* tanpa harus selalu datang ke pengadilan.\n\n" +
+                          "Detail Akun Anda:\n" +
+                          "Username: *" + pihak.usernameEcourt + "*\n" +
+                          "Password: *" + pihak.passEcourt + "*\n\n" +
+                          "Demikian kami sampaikan. Atas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.";
+            } 
+            else if (templateType === 3) {
+                // Sesuai contoh teks di Gambar 3 (image_f230e1.png)
+                message = "*Penting untuk diketahui:*\n" +
+                          "Setelah Bapak/Ibu melakukan *pembayaran*, dalam waktu kurang lebih *7 x 24 jam (± 1 minggu)* Bapak/Ibu akan menerima *notifikasi pemberitahuan jadwal sidang melalui WhatsApp dan/atau e-mail* yang telah didaftarkan pada saat pendaftaran perkara.\n\n" +
+                          "Mohon memastikan nomor WhatsApp dan alamat e-mail aktif agar pemberitahuan dapat diterima dengan baik.\n\n" +
+                          "Terima kasih atas perhatian Bapak/Ibu.";
+            }
+
+            // Encode pesan teks ke URI Format & eksekusi pengiriman via WA API web/apps
+            const waUrl = "https://wa.me/" + phoneNo + "?text=" + encodeURIComponent(message);
+            window.open(waUrl, '_blank');
+        }
+
+        function renderArsipTable() {
+            const query = document.getElementById('searchArsip').value.toLowerCase();
+            const status = document.getElementById('filterStatus').value;
+            const tanggal = document.getElementById('filterTanggal').value;
+            const skumFilter = document.getElementById('filterSKUM').value;
+            const tbody = document.getElementById('arsipTableBody');
+            
+            tbody.innerHTML = '';
+
+            let filtered = dbPihak.filter(p => {
+                const matchQuery = p.nama.toLowerCase().includes(query) || p.nik.includes(query) || p.usernameEcourt.toLowerCase().includes(query) || (p.catatan && p.catatan.toLowerCase().includes(query));
+                const matchStatus = status === 'All' || p.type === status;
+                const matchTanggal = !tanggal || p.tglInput === tanggal;
+                
+                let matchSKUM = true;
+                if (skumFilter === 'Belum') matchSKUM = p.isLunasSKUM === false || p.isLunasSKUM === undefined;
+                if (skumFilter === 'Sudah') matchSKUM = p.isLunasSKUM === true;
+
+                return matchQuery && matchStatus && matchTanggal && matchSKUM;
+            });
+
+            filtered.sort((a, b) => {
+                let valA = a[sortField] || '';
+                let valB = b[sortField] || '';
+                if (typeof valA === 'string') {
+                    return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+                return sortAsc ? valA - valB : valB - valA;
+            });
+
+            if(filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-gray-400">Arsip data kosong atau tidak ditemukan.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach((p, idx) => {
+                const badge = p.type === 'Penggugat' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+                const isLunas = p.isLunasSKUM === true;
+                
+                const skumBadge = isLunas 
+                    ? `<button onclick="toggleSkumStatusDirectly('${p.id}')" class="mt-1 px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1 cursor-pointer" title="Klik untuk ubah ke Belum Bayar"><i class="fa-solid fa-circle-check"></i> Lunas SKUM</button>`
+                    : `<button onclick="toggleSkumStatusDirectly('${p.id}')" class="mt-1 px-2 py-0.5 text-[10px] font-bold rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 flex items-center gap-1 cursor-pointer" title="Klik untuk konfirmasi Lunas"><i class="fa-solid fa-circle-xmark animate-pulse"></i> Belum Bayar</button>`;
+
+                let pdfButton = p.fileDataPdf 
+                    ? `<button onclick="downloadAttachedFile('${p.fileDataPdf}', '${p.fileNamePdf}')" class="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-950/40 dark:text-red-300 rounded text-[10px] font-medium transition-all" title="Download berkas PDF"><i class="fa-solid fa-file-pdf"></i> PDF</button>` 
+                    : `<span class="text-gray-300 dark:text-gray-600 text-[10px]">-</span>`;
+                    
+                let wordButton = p.fileDataWord 
+                    ? `<button onclick="downloadAttachedFile('${p.fileDataWord}', '${p.fileNameWord}')" class="flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 rounded text-[10px] font-medium transition-all" title="Download berkas Word"><i class="fa-solid fa-file-word"></i> Word</button>` 
+                    : `<span class="text-gray-300 dark:text-gray-600 text-[10px]">-</span>`;
+
+                let catatanTampil = p.catatan 
+                    ? `<div class="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900 rounded text-[11px] font-medium break-words leading-snug shadow-3xs"><i class="fa-solid fa-thumbtack text-[10px] text-amber-500 mr-1"></i> ${p.catatan}</div>`
+                    : `<span class="text-gray-400 italic text-[11px]">Tidak ada catatan</span>`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="p-4 text-center text-gray-400 font-medium">${idx + 1}</td>
+                        <td class="p-4 text-xs font-mono">${p.tglInput}</td>
+                        <td class="p-4">
+                            <div class="font-bold text-gray-900 dark:text-white">${p.nama}</div>
+                            <div class="text-[11px] text-gray-400 font-mono">${p.noPerkara || 'Belum Registrasi'}</div>
+                        </td>
+                        <td class="p-4"><span class="px-2 py-0.5 rounded text-xs font-semibold ${badge}">${p.type}</span></td>
+                        <td class="p-4 text-xs">
+                            <div>NIK: ${p.nik}</div>
+                            <div class="text-gray-400">HP: ${p.hp}</div>
+                        </td>
+                        <td class="p-4 text-xs">
+                            <div class="font-bold text-emerald-600 dark:text-emerald-400">${p.usernameEcourt}</div>
+                            <div class="text-gray-400 font-mono">Pass: ${p.passEcourt}</div>
+                            <div>${skumBadge}</div>
+                        </td>
+                        <td class="p-4 text-xs">
+                            <div class="flex flex-col gap-1.5">
+                                ${pdfButton}
+                                ${wordButton}
+                            </div>
+                        </td>
+                        <td class="p-4">${catatanTampil}</td>
+                        <td class="p-4 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                <!-- DROPDOWN BUTTON UNTUK CHAT OTOMATIS WHATSAPP (A, B, C) -->
+                                <div class="relative wa-dropdown-container">
+                                    <button onclick="event.stopPropagation(); openWADropdown('${p.id}')" class="p-1 text-emerald-600 hover:bg-emerald-100 rounded cursor-pointer" title="Kirim Pesan WhatsApp Otomatis">
+                                        <i class="fa-brands fa-whatsapp text-lg font-bold"></i>
+                                    </button>
+                                    <div id="wa-menu-${p.id}" class="wa-dropdown-menu hidden absolute right-0 bottom-8 z-30 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 text-left">
+                                        <button onclick="kirimWhatsApp('${p.id}', 1)" class="w-full px-4 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                                            <i class="fa-solid fa-receipt text-amber-500"></i> Chat 1: Pembayaran Panjar
+                                        </button>
+                                        <button onclick="kirimWhatsApp('${p.id}', 2)" class="w-full px-4 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                                            <i class="fa-solid fa-key text-blue-500"></i> Chat 2: Berbagi Akun e-Court
+                                        </button>
+                                        <button onclick="kirimWhatsApp('${p.id}', 3)" class="w-full px-4 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 font-medium text-gray-700 dark:text-gray-200">
+                                            <i class="fa-solid fa-calendar-day text-emerald-500"></i> Chat 3: Info Jadwal Sidang
+                                        </button>
+                                    </div>
+                                </div>
+                                <button onclick="editPihak('${p.id}')" class="p-1 text-blue-600 hover:bg-blue-100 rounded cursor-pointer" title="Ubah/Edit Berkas"><i class="fa-solid fa-user-pen"></i></button>
+                                <button onclick="printAkunDariArsip('${p.id}')" class="p-1 text-amber-600 hover:bg-amber-100 rounded cursor-pointer" title="Cetak Nota Akun"><i class="fa-solid fa-print"></i></button>
+                                <button onclick="deletePihak('${p.id}')" class="p-1 text-red-600 hover:bg-red-100 rounded cursor-pointer" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function printAkunDariArsip(id) {
+            const pihak = dbPihak.find(p => p.id === id);
+            if(pihak) buildAndPrintAkun(pihak);
+        }
+
+        function printAkunLangsung() {
+            const id = document.getElementById('form-id').value;
+            const pihak = dbPihak.find(p => p.id === id);
+            if(pihak) buildAndPrintAkun(pihak);
+        }
+
+        function buildAndPrintAkun(pihak) {
+            const printArea = document.getElementById('printArea');
+            if(pihak.type === 'Tergugat') {
+                printArea.innerHTML = `
+                    <div style="font-family: Arial, sans-serif; padding: 25px; max-width: 175mm; margin: auto; color: #000; line-height: 1.5; background: #fff;">
+                        <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            TELP PENGADILAN AGAMA BANGKINANG : 0823-8614-6387
+                        </div>
+                        <div style="border: 2.5px solid #000; border-radius: 25px; padding: 18px; text-align: center; margin-bottom: 30px; background: #fff;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 19px; font-weight: bold;">Data Generate Akun Pihak</h3>
+                            <p style="margin: 6px 0; font-size: 18px; font-weight: bold;">User : ${pihak.usernameEcourt}</p>
+                            <p style="margin: 6px 0; font-size: 18px; font-weight: bold;">passwrod : ${pihak.passEcourt}</p>
+                        </div>
+                        <div style="font-size: 15px; margin-bottom: 20px;">
+                            <strong>Situs</strong> : <a href="https://ecourt.mahkamahagung.go.id/login" style="color:#000; text-decoration: underline;">https://ecourt.mahkamahagung.go.id/login</a>
+                        </div>
+                        <p style="font-size: 15px; text-align: justify; margin-bottom: 20px; line-height: 1.5;">
+                            Buka <strong>PENDAFTARAN PERKARA</strong> lalu Klik <strong>GUGATAN ONLINE</strong> Pilih Nomor Perkara yang terdaftar, Pilih <strong>JADWAL SIDANG</strong> and uploadkan Berkas pada jadwal sidang
+                        </p>
+                    </div>
+                `;
+            } else {
+                printArea.innerHTML = `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 185mm; margin: auto; color: #000; line-height: 1.4; background: #fff;">
+                        <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 15px;">
+                            TELP PENGADILAN AGAMA BANGKINANG : 0823-8614-6387
+                        </div>
+                        <div style="border: 2.5px solid #000; border-radius: 25px; padding: 15px; text-align: center; margin-bottom: 20px;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold;">Data user</h3>
+                            <p style="margin: 4px 0; font-size: 16px; font-weight: bold;">username : <span style="text-decoration:underline;">${pihak.usernameEcourt}</span></p>
+                            <p style="margin: 4px 0; font-size: 16px; font-weight: bold;">Password : ${pihak.passEcourt}</p>
+                        </div>
+                        <div style="font-size: 14px; margin-bottom: 15px;">
+                            <strong>Situs</strong> : <span style="text-decoration: underline;">https://ecourt.mahkamahagung.go.id/login</span>
+                        </div>
+                        <p style="font-size: 14px; text-align: justify; margin-bottom: 25px; line-height: 1.5;">
+                            Buka PENDAFTARAN PERKARA lalu Klik GUGATAN / PERMOHONAN ONLINE Pilih Nomor Perkara yang terdaftar, Pilih PERSIDANGAN untuk melihat JADWAL SIDANG dan upload Berkas Persidangan Online pada jadwal sidang yang akan ditentukan
+                        </p>
+                        
+                        <div style="font-size: 12px; font-family: Arial, sans-serif; line-height: 1.4; border-top: 1px dashed #000; pt-15px; padding-top: 15px;">
+                            <div style="text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 13px;">
+                                CARA PEMBAYARAN VIRTUAL ACCOUNT E COURT MAHKAMAH AGUNG
+                            </div>
+                            
+                            <div style="margin-bottom: 10px;">
+                                <strong style="font-style: italic;">Melalui echanel BSI:</strong>
+                                <ul style="list-style-type: none; padding-left: 15px; margin: 4px 0;">
+                                    <li>◆ BSI Net Banking</li>
+                                    <li style="padding-left: 15px;">▶ Pembayaran</li>
+                                    <li style="padding-left: 15px;">▶ Institusi</li>
+                                    <li style="padding-left: 15px;">▶ Mahkamah Agung E Court</li>
+                                    <li style="padding-left: 15px; text-indent: 5px;">Untuk nomor virtual masukan kode bayarnya saja. setelah 6008 (10 digit)</li>
+                                </ul>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <strong style="font-style: italic;">ATM Bersama dan ATM Mandiri:</strong>
+                                <ul style="list-style-type: none; padding-left: 15px; margin: 4px 0;">
+                                    <li>▶ Pilih Menu Transfer</li>
+                                    <li>▶ ketik kode BSM: 451</li>
+                                    <li>▶ kode pembayaran BPI: 900</li>
+                                    <li>▶ ketik kode institusi: 6008</li>
+                                    <li>▶ ketik kode pembayaran perkara.</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <strong style="font-style: italic;">ATM BSI:</strong>
+                                <ul style="list-style-type: none; padding-left: 15px; margin: 4px 0;">
+                                    <li>▶ Pilih Menu pemindahbukuan</li>
+                                    <li>▶ Masukan nominal pembayaran</li>
+                                    <li>▶ ketik kode institusi: 6008</li>
+                                    <li>▶ ketik kode pembayaran perkara. Maka rekening tujuan akan muncul dan menunjukan jumlah yg akan bayarkan, bila sudah sesuai pilih "oke"</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const wrap = document.getElementById('mainAppWrapper');
+            if(wrap) wrap.style.display = 'none';
+            printArea.classList.remove('hidden');
+
+            setTimeout(() => {
+                window.print();
+                printArea.classList.add('hidden');
+                if(wrap) wrap.style.display = 'flex';
+            }, 250);
+        }
+
+        function populatePihakDropdown() {
+            const select = document.getElementById('s-pilih-pihak');
+            const filterBulan = parseInt(document.getElementById('s-filter-bulan').value);
+            const filterTahun = parseInt(document.getElementById('s-filter-tahun').value);
+            const filterTanggal = document.getElementById('s-filter-tanggal').value;
+            
+            select.innerHTML = '<option value="">-- Pilih Pihak --</option>';
+            
+            let countData = 0;
+            dbPihak.forEach(p => {
+                if(p.tglInput) {
+                    const dInput = new Date(p.tglInput);
+                    const matchBulanTahun = dInput.getMonth() === filterBulan && dInput.getFullYear() === filterTahun;
+                    const matchTanggalSpesifik = !filterTanggal || p.tglInput === filterTanggal;
+
+                    if(matchBulanTahun && matchTanggalSpesifik) {
+                        select.innerHTML += `<option value="${p.id}">${p.nama} (${p.type})</option>`;
+                        countData++;
+                    }
+                }
+            });
+
+            if(countData === 0) {
+                select.innerHTML = '<option value="">-- Tidak ada data pihak sesuai filter --</option>';
+            }
+        }
+
+        function toggleFormRekening() {
+            const jenis = document.getElementById('s-jenis-dokumen').value;
+            const panelRekening = document.getElementById('panel-parameter-rekening');
+            const lblPemilik = document.getElementById('lbl-bank-pemilik');
+            const txtPemilik = document.getElementById('s-bank-pemilik');
+
+            if (jenis === 'persetujuan-elektronik') {
+                panelRekening.classList.add('hidden');
+                document.getElementById('div-s-ttl').classList.add('hidden');
+                document.getElementById('div-s-pendidikan').classList.add('hidden');
+                document.getElementById('div-s-email').classList.remove('hidden');
+                document.getElementById('div-s-status').classList.remove('hidden');
+            } else {
+                panelRekening.classList.remove('hidden');
+                document.getElementById('div-s-ttl').classList.remove('hidden');
+                document.getElementById('div-s-pendidikan').classList.remove('hidden');
+                document.getElementById('div-s-email').classList.add('hidden');
+                document.getElementById('div-s-status').classList.add('hidden');
+
+                if (jenis === 'rekening-pribadi') {
+                    lblPemilik.innerText = "Nama Rekening (Sesuai Buku Tabungan / Pribadi)";
+                    txtPemilik.placeholder = "Otomatis nama prinsipal...";
+                } else if (jenis === 'rekening-oranglain') {
+                    lblPemilik.innerText = "Nama Pemilik Rekening Orang Lain";
+                    txtPemilik.placeholder = "Contoh: BUDI RIPANDRA";
+                }
+            }
+        }
+
+        function loadPihakKeSurat(id) {
+            const pihak = dbPihak.find(p => p.id === id);
+            if (!pihak) return;
+
+            document.getElementById('s-nama').value = pihak.nama === 'Tanpa Nama KTP' ? '' : pihak.nama;
+            document.getElementById('s-email').value = pihak.emailEcourt;
+            document.getElementById('s-alamat').value = pihak.alamat === '-' ? '' : pihak.alamat;
+            document.getElementById('s-pekerjaan').value = pihak.pekerjaan === '-' ? '' : pihak.pekerjaan;
+            document.getElementById('s-pendidikan').value = pihak.pendidikan === '-' ? '' : pihak.pendidikan;
+            
+            let ttlString = pihak.tempatLahir !== '-' ? pihak.tempatLahir : '';
+            if(pihak.tglLahir) {
+                let dLahir = new Date(pihak.tglLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                ttlString += ttlString !== '' ? ', ' + dLahir : dLahir;
+            }
+            document.getElementById('s-ttl').value = ttlString || '................................................';
+            
+            if(pihak.bankNama && pihak.bankNama !== '-') document.getElementById('s-bank-nama').value = pihak.bankNama;
+            if(pihak.bankNomor && pihak.bankNomor !== '-') document.getElementById('s-bank-nomor').value = pihak.bankNomor;
+
+            if(document.getElementById('s-jenis-dokumen').value === 'rekening-pribadi') {
+                document.getElementById('s-bank-pemilik').value = (pihak.bankPemilik && pihak.bankPemilik !== '-') ? pihak.bankPemilik : pihak.nama;
+            } else {
+                document.getElementById('s-bank-pemilik').value = (pihak.bankPemilik && pihak.bankPemilik !== '-') ? pihak.bankPemilik : '';
+            }
+
+            if(pihak.tglInput) {
+                document.getElementById('s-tgl-surat').value = pihak.tglInput;
+            }
+            
+            generatePreviewSurat();
+        }
+
+        function generatePreviewSurat() {
+            const jenis = document.getElementById('s-jenis-dokumen').value;
+            
+            const nama = document.getElementById('s-nama').value || '................................................';
+            const ttl = document.getElementById('s-ttl').value || '................................................';
+            const pendidikan = document.getElementById('s-pendidikan').value || '................................................';
+            const pekerjaan = document.getElementById('s-pekerjaan').value || '................................................';
+            const alamat = document.getElementById('s-alamat').value || '................................................';
+            const email = document.getElementById('s-email').value || '................................................';
+            const status = document.getElementById('s-status').value;
+
+            const bankNama = document.getElementById('s-bank-nama').value || '................................................';
+            const bankNomor = document.getElementById('s-bank-nomor').value || '................................................';
+            const bankPemilik = document.getElementById('s-bank-pemilik').value || '................................................';
+
+            const tempatSurat = document.getElementById('s-tempat-surat').value || 'Bangkinang';
+            const rawTanggal = document.getElementById('s-tgl-surat').value;
+            let tglSkgStr = '................................................';
+            if(rawTanggal) {
+                tglSkgStr = new Date(rawTanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
+
+            const box = document.getElementById('preview-surat-box');
+
+            if (jenis === 'persetujuan-elektronik') {
+                box.innerHTML = `
+                    <div style="text-align: center; font-weight: bold; font-size: 15px; text-transform: uppercase; line-height: 1.3; margin-bottom: 25px; letter-spacing: 0.5px;">
+                        PERSETUJUAN TERTULIS PRINSIPAL<br>UNTUK BERACARA SECARA ELEKTRONIK
+                    </div>
+                    <p style="margin-bottom: 15px;">Saya, yang bertanda-tangan dibawah ini :</p>
+                    <table style="width: 100%; margin-left: 25px; margin-bottom: 20px; font-size: 14px;">
+                        <tr><td style="width: 140px; padding: 4px 0;">Nama</td><td>: ${nama}</td></tr>
+                        <tr><td style="padding: 4px 0;">Alamat Email</td><td>: ${email}</td></tr>
+                        <tr><td style="padding: 4px 0;">Tempat Tinggal</td><td>: ${alamat}</td></tr>
+                        <tr><td style="padding: 4px 0;">Pekerjaan</td><td>: ${pekerjaan}</td></tr>
+                    </table>
+                    <p style="margin-left: 25px; margin-bottom: 20px;">Selanjutnya disebut <strong>${status}</strong></p>
+                    <p style="margin-bottom: 20px; text-align: justify;">
+                        Dengan ini memberikan persetujuan tertulis untuk beracara secara elektronik di Pengadilan Agama Bangkinang.
+                    </p>
+                    <p style="text-align: justify; margin-bottom: 10px;">
+                        Berdasarkan Peraturan Mahkamah Agung Republik Indonesia Nomor 3 tahun 2018 tentang Administrasi perkara di Pengadilan secara elektronik, yang meliputi:
+                    </p>
+                    <ol style="list-style-type: decimal; padding-left: 20px; margin-bottom: 30px; text-align: justify;">
+                        <li style="margin-bottom: 4px;">Mengikuti proses acara persidangan secara elektronik;</li>
+                        <li style="margin-bottom: 4px;">Melaksanakan sidang pembuktian sesuai dengan hukum acara yang berlaku;</li>
+                        <li style="margin-bottom: 4px;">Menerima panggilan sidang dan pemberitahuan putusan perkara perdata secara elektronik.</li>
+                    </ol>
+                    <p style="text-align: justify; margin-bottom: 40px;">
+                        Demikian surat persetujuan ini dibuat untuk beracara secara elektronik di Pengadilan Agama Bangkinang yang harus dipenuhi oleh ${status.replace('Prinsipal ', '')}.
+                    </p>
+                    <div style="float: right; text-align: center; width: 250px; font-size: 14px;">
+                        <div>${tempatSurat}, ${tglSkgStr}</div>
+                        <div style="margin-bottom: 75px; font-weight: 500;">${status}</div>
+                        <div style="font-weight: normal;">${nama}</div>
+                    </div>
+                    <div style="clear: both;"></div>
+                `;
+            } 
+            else if (jenis === 'rekening-pribadi') {
+                box.innerHTML = `
+                    <div style="text-align: center; font-weight: bold; font-size: 15px; text-transform: uppercase; margin-bottom: 25px;">
+                        SURAT PERNYATAAN
+                    </div>
+                    <p style="margin-bottom: 15px;">Saya yang bertanda tangan dibawah ini :</p>
+                    <table style="width: 100%; margin-left: 25px; margin-bottom: 25px; font-size: 14px;">
+                        <tr><td style="width: 160px; padding: 4px 0;">Nama</td><td>: ${nama}</td></tr>
+                        <tr><td style="padding: 4px 0;">Tempat Tanggal Lahir</td><td>: ${ttl}</td></tr>
+                        <tr><td style="padding: 4px 0;">Pendidikan</td><td>: ${pendidikan}</td></tr>
+                        <tr><td style="padding: 4px 0;">Pekerjaan</td><td>: ${pekerjaan}</td></tr>
+                        <tr><td style="padding: 4px 0; vertical-align: top;">Beralamat</td><td>: ${alamat}</td></tr>
+                    </table>
+                    <p style="text-align: justify; text-indent: 35px; margin-bottom: 20px;">
+                        Dengan ini menyatakan bahwa nomor rekening yang saya pergunakan dalam pendaftaran perkara di Pengadilan Agama Bangkinang menggunakan Rekening Nomor <strong>${bankNomor}</strong> atas nama <strong>${bankPemilik}</strong> pada <strong>${bankNama}</strong> adalah rekening saya pribadi and apabila perkara yang daftarkan ini diputus oleh Pengadilan Agama Bangkinang and jika masih ada sisa panjar biaya perkara kiranya dapat ditransfer pada rekening tersebut diatas atau dapat juga melalui pengiriman wesel pos;
+                    </p>
+                    <p style="text-align: justify; margin-bottom: 45px;">
+                        Demikian surat pernyataan ini kami buat untuk dipergunakan sebagaimana mestinya.
+                    </p>
+                    <div style="float: right; text-align: center; width: 250px; font-size: 14px;">
+                        <div>${tempatSurat}, &nbsp;${tglSkgStr}</div>
+                        <div style="margin-bottom: 75px;">Saya yang membuat pernyataan</div>
+                        <div style="font-weight: normal;">${nama}</div>
+                    </div>
+                    <div style="clear: both;"></div>
+                `;
+            } 
+            else if (jenis === 'rekening-oranglain') {
+                box.innerHTML = `
+                    <div style="text-align: center; font-weight: bold; font-size: 15px; text-transform: uppercase; margin-bottom: 25px;">
+                        SURAT PERNYATAAN
+                    </div>
+                    <p style="margin-bottom: 15px;">Saya yang bertanda tangan dibawah ini :</p>
+                    <table style="width: 100%; margin-left: 25px; margin-bottom: 25px; font-size: 14px;">
+                        <tr><td style="width: 160px; padding: 4px 0;">Nama</td><td>: ${nama}</td></tr>
+                        <tr><td style="padding: 4px 0;">Tempat Tanggal Lahir</td><td>: ${ttl}</td></tr>
+                        <tr><td style="padding: 4px 0;">Pendidikan</td><td>: ${pendidikan}</td></tr>
+                        <tr><td style="padding: 4px 0;">Pekerjaan</td><td>: ${pekerjaan}</td></tr>
+                        <tr><td style="padding: 4px 0; vertical-align: top;">Beralamat</td><td>: ${alamat}</td></tr>
+                    </table>
+                    <p style="text-align: justify; text-indent: 35px; margin-bottom: 15px;">
+                        Dengan ini menyatakan bahwa dalam pendaftaran perkara di Pengadilan Agama Bangkinang saya menggunakan Rekening Nomor <strong>${bankNomor}</strong> atas nama <strong>${bankPemilik}</strong> yang merupakan Rekening pada <strong>${bankNama}</strong> apabila perkara yang daftarkan ini diputus oleh Pengadilan Agama Bangkinang and jika masih ada sisa panjar biaya perkara tersebut maka saya mohon agar pengembalian sisa panjar dapat ditransfer ke rekening nomor <strong>${bankNomor}</strong> atas nama <strong>${bankPemilik}</strong> atau dapat juga dikembalikan melalui pengiriman wesel pos;
+                    </p>
+                    <p style="text-align: justify; text-indent: 35px; margin-bottom: 25px;">
+                        Sehubungan saya menggunakan rekening orang lain, maka jika Pengadilan telah mentransfer sesuai nomor rekening yang telah saya berikan kepada pihak Pengadilan, lalu pemilik rekening tidak menyerahkan uang yang telah ditransfer tersebut kepada saya, maka saya tidak dapat menuntut pihak Pengadilan and hal tersebut menjadi urusan saya dengan pihak pemilik rekening;
+                    </p>
+                    <p style="text-align: justify; margin-bottom: 45px;">
+                        Demikian surat pernyataan ini kami buat untuk dipergunakan sebagaimana mestinya.
+                    </p>
+                    <div style="float: right; text-align: center; width: 250px; font-size: 14px;">
+                        <div>${tempatSurat}, &nbsp;${tglSkgStr}</div>
+                        <div style="margin-bottom: 75px;">Saya yang membuat pernyataan</div>
+                        <div style="font-weight: normal;">${nama}</div>
+                    </div>
+                    <div style="clear: both;"></div>
+                `;
+            }
+        }
+
+        function cetakSuratPersetujuan() {
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = `<div class="p-16 text-sm" style="font-family: Arial, sans-serif; background:#fff; color:#000; line-height:1.6;">` + document.getElementById('preview-surat-box').innerHTML + `</div>`;
+            
+            const wrap = document.getElementById('mainAppWrapper');
+            if (wrap) wrap.style.display = 'none';
+            printArea.classList.remove('hidden');
+
+            setTimeout(() => {
+                window.print();
+                printArea.classList.add('hidden');
+                if (wrap) wrap.style.display = 'flex';
+            }, 250);
+        }
+
+        function changeSort(field) {
+            sortField = field;
+            sortAsc = !sortAsc;
+            renderArsipTable();
+        }
+
+        function clearFilter() {
+            document.getElementById('searchArsip').value = '';
+            document.getElementById('filterStatus').value = 'All';
+            document.getElementById('filterTanggal').value = '';
+            document.getElementById('filterSKUM').value = 'All'; 
+            renderArsipTable();
+        }
+
+        function exportBackup() {
+            if(dbPihak.length === 0) return alert("Belum ada data.");
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dbPihak, null, 2));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", `BACKUP_ECOURT_PA__BKN.json`);
+            dl.click();
+        }
+
+        function importBackup(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function() {
+                dbPihak = JSON.parse(reader.result);
+                localStorage.setItem('db_ecourt_ptsp', JSON.stringify(dbPihak));
+                showToast('Database dipulihkan!');
+                switchMenu('dashboard');
+            };
+            reader.readAsText(file);
+        }
+
+        function exportToExcel() {
+            let csv = "No,Tanggal,Nama,Status,NIK,HP,Username,Password,StatusSKUM,Catatan\n";
+            dbPihak.forEach((p, i) => {
+                const skumText = p.isLunasSKUM ? "Lunas/Dicetak" : "Belum Bayar";
+                const cleanCatatan = p.catatan ? p.catatan.replace(/"/g, '""') : '';
+                csv += `${i+1},${p.tglInput},"${p.nama}",${p.type},'${p.nik},'${p.hp},${p.usernameEcourt},${p.passEcourt},${skumText},"${cleanCatatan}"\n`;
+            });
+            const l = document.createElement("a");
+            l.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csv));
+            l.setAttribute("download", `Data_Arsip_eCourt_PA_Bkn.csv`);
+            l.click();
+        }
+
+        function updateDashboardStats() {
+            const p = dbPihak.filter(x => x.type === 'Penggugat').length;
+            const t = dbPihak.filter(x => x.type === 'Tergugat').length;
+            document.getElementById('dash-penggugat').innerText = p;
+            document.getElementById('dash-tergugat').innerText = t;
+            document.getElementById('dash-persetujuan').innerText = dbPihak.length;
+            document.getElementById('dash-total').innerText = dbPihak.length;
+            
+            updateChartsData();
+            renderRekapHarianDinamis();
+        }
+
+        function initCharts() {
+            myChartHarian = new Chart(document.getElementById('chartHarian').getContext('2d'), {
+                type: 'line',
+                data: { labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Ming'], datasets: [{ label: 'Akun', data: [0,0,0,0,0,0,0], borderColor: '#0A5C36', fill: true, tension: 0.2 }] }
+            });
+            myChartBulanan = new Chart(document.getElementById('chartBulanan').getContext('2d'), {
+                type: 'bar',
+                data: { labels: ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'], datasets: [{label:'Penggugat', data:Array(12).fill(0), backgroundColor:'#0A5C36'}, {label:'Tergugat', data:Array(12).fill(0), backgroundColor:'#dc2626'}] }
+            });
+        }
+
+        function updateChartsData() {
+            if(!myChartHarian || !myChartBulanan) return;
+            let bP = Array(12).fill(0), bT = Array(12).fill(0), h = Array(7).fill(0);
+            dbPihak.forEach(x => {
+                if(x.tglInput) {
+                    let d = new Date(x.tglInput), m = d.getMonth(), dy = d.getDay() === 0 ? 6 : d.getDay() - 1;
+                    if(x.type === 'Penggugat') bP[m]++; else bT[m]++;
+                    h[dy]++;
+                }
+            });
+            myChartBulanan.data.datasets[0].data = bP;
+            myChartBulanan.data.datasets[1].data = bT;
+            myChartBulanan.update();
+            myChartHarian.data.datasets[0].data = h;
+            myChartHarian.update();
+        }
+
+        function renderRekapHarianDinamis() {
+            const container = document.getElementById('containerRekapHarian');
+            container.innerHTML = '';
+
+            if (dbPihak.length === 0) {
+                container.innerHTML = `<p class="text-center text-sm text-gray-400 py-6">Belum ada data pendaftaran berkas.</p>`;
+                return;
+            }
+
+            let rekapData = {};
+
+            dbPihak.forEach(pihak => {
+                if (!pihak.tglInput) return;
+
+                const dateObj = new Date(pihak.tglInput);
+                const namaBulanTahun = dateObj.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+                const namaHariTanggalLengkap = dateObj.toLocaleString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+                if (!rekapData[namaBulanTahun]) rekapData[namaBulanTahun] = {};
+                if (!rekapData[namaBulanTahun][namaHariTanggalLengkap]) rekapData[namaBulanTahun][namaHariTanggalLengkap] = 0;
+
+                rekapData[namaBulanTahun][namaHariTanggalLengkap]++;
+            });
+
+            const keysBulan = Object.keys(rekapData);
+            
+            keysBulan.forEach((bulan, index) => {
+                const daftarHari = rekapData[bulan];
+                const cleanId = "rekap-" + index;
+                
+                let totalBulan = 0;
+                Object.values(daftarHari).forEach(val => totalBulan += val);
+
+                const isHidden = index === 0 ? '' : 'hidden';
+                const arrowClass = index === 0 ? 'fa-rotate-90' : '';
+
+                let cardHTML = `
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-xs bg-white dark:bg-gray-800">
+                        <button onclick="toggleRekapDropdown('${cleanId}')" class="w-full flex items-center justify-between p-4 bg-gray-50/70 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors text-left cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <i id="icon-arrow-${cleanId}" class="fa-solid fa-chevron-right text-xs text-gray-400 transition-transform duration-200 ${arrowClass}"></i>
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-calendar-days text-emerald-600 dark:text-emerald-400 text-sm"></i>
+                                    <span class="font-bold text-sm text-gray-700 dark:text-gray-200">${bulan}</span>
+                                </div>
+                            </div>
+                            <span class="text-xs bg-emerald-50 dark:bg-emerald-950/40 text-ma-green dark:text-emerald-400 border border-emerald-200/30 font-semibold px-2.5 py-0.5 rounded-full">
+                                Total: ${totalBulan} Akun
+                            </span>
+                        </button>
+                        
+                        <div id="${cleanId}" class="${isHidden} border-t border-gray-100 dark:border-gray-700 p-3 bg-white dark:bg-gray-800 transition-all">
+                            <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                `;
+
+                const sortedHariEntries = Object.entries(daftarHari).reverse();
+
+                sortedHariEntries.forEach(([hariTanggal, jumlahOrang]) => {
+                    cardHTML += `
+                        <li class="flex justify-between items-center bg-gray-50/50 dark:bg-gray-700/20 px-3 py-2 rounded-lg border border-gray-100 dark:border-gray-700/50 text-xs transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                            <span class="text-gray-600 dark:text-gray-300 font-medium">${hariTanggal}</span>
+                            <span class="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold px-2 py-0.5 rounded border border-gray-200 dark:border-gray-600 shadow-3xs">
+                                ${jumlahOrang} Akun
+                            </span>
+                        </li>
+                    `;
+                });
+
+                cardHTML += `
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        function toggleRekapDropdown(id) {
+            const panel = document.getElementById(id);
+            const arrow = document.getElementById('icon-arrow-' + id);
+            
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                arrow.classList.add('fa-rotate-90');
+            } else {
+                panel.classList.add('hidden');
+                arrow.classList.remove('fa-rotate-90');
+            }
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                document.getElementById('dark-icon').className = "fa-solid fa-moon";
+            } else {
+                html.classList.add('dark');
+                document.getElementById('dark-icon').className = "fa-solid fa-sun text-amber-400";
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            document.getElementById('toast-icon').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>`;
+            toast.className = "fixed top-5 right-5 z-50 flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-l-4 border-emerald-500";
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+    </script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBZRYNCgwRH2l3NLVn7OsH_CLY39IauVMs",
+  authDomain: "asisten-ecourt.firebaseapp.com",
+  databaseURL: "https://asisten-ecourt-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "asisten-ecourt",
+  storageBucket: "asisten-ecourt.firebasestorage.app",
+  messagingSenderId: "892696129045",
+  appId: "1:892696129045:web:855334162f6a97cb8f281c"
+};
+</body>
+</html>
